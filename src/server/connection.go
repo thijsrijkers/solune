@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
     "bufio"
@@ -7,11 +7,9 @@ import (
     "net"
 )
 
-// handleConnection manages the communication for each TCP connection
-func handleConnection(conn net.Conn) {
+func HandleConnection(conn net.Conn) {
     defer conn.Close()
 
-    // Read data from the connection
     reader := bufio.NewReader(conn)
     for {
         message, err := reader.ReadString('\n')
@@ -21,8 +19,7 @@ func handleConnection(conn net.Conn) {
         }
         log.Printf("Received: %s", message)
 
-        // Echo the message back to the client
-        _, err = conn.Write([]byte(fmt.Sprintf("Echo: %s", message)))
+        _, err = fmt.Fprintf(conn, "Echo: %s", message)
         if err != nil {
             log.Printf("Error writing: %v", err)
             return

@@ -3,6 +3,7 @@ package main
 import (
     "log"
     "net"
+    "paper/src/server"
 )
 
 func main() {
@@ -22,6 +23,6 @@ func main() {
         }
         log.Printf("Connection established with %s", conn.RemoteAddr())
 
-        go handleConnection(conn)
+        go server.HandleConnection(conn)
     }
 }
