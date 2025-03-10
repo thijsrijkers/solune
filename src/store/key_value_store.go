@@ -42,3 +42,11 @@ func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error)
 	}
 	return value, nil
 }
+
+func (store *KeyValueStore) GetAllData() []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, row := range store.data {
+		result = append(result, row)
+	}
+	return result
+}

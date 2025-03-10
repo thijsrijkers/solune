@@ -7,7 +7,7 @@ import (
 )
 
 func TestKeyValueStoreManager(test *testing.T) {
-	manager := store.NewKeyValueStoreManager()
+	manager := store.NewDataStoreManager()
 
 	columnTypes := store.ColumnSchema{
 		"age":  reflect.TypeOf(0),
