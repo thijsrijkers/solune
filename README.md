@@ -1,16 +1,6 @@
 # Paper - A Serverless NoSQL Database Focused on Scalability & Flexibility
 
-## Overview
-
 **Paper** is a high-performance, serverless NoSQL database designed with an emphasis on scalability and flexibility. By focusing on efficient internal data storage and retrieval, Paper aims to provide rapid access to data while scaling seamlessly across a wide range of use cases.
-
-## Project Goal
-
-The goal of **Paper** is to optimize the way data is handled within a database protocol. By carefully designing the internal mechanisms for storing and retrieving data, we aim to achieve:
-
-- **Efficient data access**: Ensuring that data retrieval is as fast as possible.
-- **Scalable architecture**: Paper is designed to grow as your data grows without compromising performance.
-- **Flexible storage model**: Supporting a variety of data structures and use cases without the overhead of traditional database models.
 
 ## Why Go?
 
