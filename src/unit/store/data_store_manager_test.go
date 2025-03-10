@@ -8,7 +8,13 @@ import (
 
 func TestKeyValueStoreManager(test *testing.T) {
 	manager := store.NewKeyValueStoreManager()
-	store := store.NewKeyValueStore(reflect.TypeOf(""), reflect.TypeOf(""), nil)
+
+	columnTypes := store.ColumnSchema{
+		"age":  reflect.TypeOf(0),
+		"name": reflect.TypeOf(""),
+	}
+
+	store := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, nil)
 	manager.AddStore("testStore", store)
 
 	retrievedStore, exists := manager.GetStore("testStore")

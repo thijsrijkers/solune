@@ -1,46 +1,40 @@
 package store
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
+	"errors"
 )
 
 type KeyValueStore struct {
-	data   map[interface{}]interface{}
+	data   map[interface{}]map[string]interface{}
 	schema Schema
 }
 
-func NewKeyValueStore(keyType, valueType reflect.Type, validate func(interface{}) error) *KeyValueStore {
+func NewKeyValueStore(keyType reflect.Type, columnTypes ColumnSchema, validate func(map[string]interface{}) error) *KeyValueStore {
 	return &KeyValueStore{
-		data: make(map[interface{}]interface{}),
+		data: make(map[interface{}]map[string]interface{}),
 		schema: Schema{
-			KeyType:   keyType,
-			ValueType: valueType,
-			Validate:  validate,
+			KeyType:     keyType,
+			ColumnTypes: columnTypes,
+			Validate:    validate,
 		},
 	}
 }
 
-func (store *KeyValueStore) Set(key, value interface{}) error {
-	if reflect.TypeOf(key) != store.schema.KeyType {
-		return errors.New("invalid key type")
+func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) error {
+	if err := store.schema.ValidateKey(key); err != nil {
+		return err
 	}
-	if reflect.TypeOf(value) != store.schema.ValueType {
-		return errors.New("invalid value type")
-	}
-	if store.schema.Validate != nil {
-		if err := store.schema.Validate(value); err != nil {
-			return fmt.Errorf("validation failed: %w", err)
-		}
+	if err := store.schema.ValidateRow(value); err != nil {
+		return err
 	}
 	store.data[key] = value
 	return nil
 }
 
-func (store *KeyValueStore) Get(key interface{}) (interface{}, error) {
-	if reflect.TypeOf(key) != store.schema.KeyType {
-		return nil, errors.New("invalid key type")
+func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error) {
+	if err := store.schema.ValidateKey(key); err != nil {
+		return nil, err
 	}
 	value, exists := store.data[key]
 	if !exists {
