@@ -1,4 +1,4 @@
-# Paper - A Serverless NoSQL Database Focused on Scalability & Flexibility
+# Paper - A Serverless NoSQL Database
 
 **Paper** is a high-performance, serverless NoSQL database designed with an emphasis on scalability and flexibility. By focusing on efficient internal data storage and retrieval, Paper aims to provide rapid access to data while scaling seamlessly across a wide range of use cases.
 
