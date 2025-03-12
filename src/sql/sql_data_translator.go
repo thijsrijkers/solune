@@ -2,7 +2,7 @@ package sql
 
 import (
 	"fmt"
-	"paper/src/store"
+	"stack/src/store"
 	"strings"
 )
 

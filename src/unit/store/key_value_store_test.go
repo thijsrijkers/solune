@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"paper/src/store"
+	"stack/src/store"
 )
 
 func TestNewKeyValueStore(t *testing.T) {

@@ -2,8 +2,8 @@ package sql_test
 
 import (
 	"testing"
-	"paper/src/sql"
-	"paper/src/store"
+	"stack/src/sql"
+	"stack/src/store"
 	"reflect"
 )
 

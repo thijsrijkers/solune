@@ -5,8 +5,8 @@ import (
     "fmt"
     "net"
     "strings"
-    "paper/src/sql"
-    "paper/src/store"
+    "stack/src/sql"
+    "stack/src/store"
 )
 
 type Server struct {

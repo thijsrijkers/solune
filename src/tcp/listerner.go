@@ -3,7 +3,7 @@ package tcp
 import (
     "fmt"
     "net"
-    "paper/src/store"
+    "stack/src/store"
 )
 
 func StartServer(port string, manager *store.DataStoreManager) {

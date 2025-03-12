@@ -3,7 +3,7 @@ package store_test
 import (
 	"reflect"
 	"testing"
-	"paper/src/store"
+	"stack/src/store"
 )
 
 func TestKeyValueStoreManager(test *testing.T) {

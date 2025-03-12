@@ -1,8 +1,8 @@
 package main
 
 import (
-    "paper/src/store"
-    "paper/src/tcp"
+    "stack/src/store"
+    "stack/src/tcp"
 )
 
 func main() {
