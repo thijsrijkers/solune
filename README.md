@@ -46,7 +46,7 @@ This will start the Paper server locally, allowing you to interact with the data
 To run the unit tests, navigate to the source folder and run:
 
 ```bash
-go test ./unit
+go test ./src/unit...
 ```
 
 This will execute the unit tests and display the results in your terminal.

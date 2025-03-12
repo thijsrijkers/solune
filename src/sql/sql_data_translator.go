@@ -14,7 +14,6 @@ func NewSQLDataTranslator(manager *store.DataStoreManager) *SQLDataTranslator {
 	return &SQLDataTranslator{manager: manager}
 }
 
-// Translate processes the SQL query and retrieves the corresponding rows
 func (translator *SQLDataTranslator) Translate(query string) ([]map[string]interface{}, error) {
 	// Use the parseSQL function to break down the query
 	columns, tableName, err := parseSQL(query)
