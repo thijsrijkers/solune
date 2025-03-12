@@ -42,6 +42,12 @@ go run .
 
 This will start the Stack server locally, allowing you to interact with the database.
 
+A port will be open through the TCP protocol so you can connect with the database with:
+
+```bash
+ telnet localhost 9000  
+```
+
 ### 3. Unit Testing
 To run the unit tests, navigate to the source folder and run:
 
