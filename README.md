@@ -1,6 +1,6 @@
-# Stack - A Serverless NoSQL Database
+# Stack - A NoSQL Database
 
-**Stack** is a high-performance, serverless NoSQL database designed with an emphasis on scalability and flexibility. By focusing on efficient internal data storage and retrieval, Stack aims to provide rapid access to data while scaling seamlessly across a wide range of use cases.
+**Stack** is a high-performance, NoSQL database designed with an emphasis on scalability and flexibility. By focusing on efficient internal data storage and retrieval, Stack aims to provide rapid access to data while scaling seamlessly across a wide range of use cases.
 
 ## Why Go?
 
