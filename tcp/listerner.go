@@ -3,7 +3,7 @@ package tcp
 import (
     "fmt"
     "net"
-    "stack/src/store"
+    "solune/store"
 )
 
 func StartServer(port string, manager *store.DataStoreManager) {

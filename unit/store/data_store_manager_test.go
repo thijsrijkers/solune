@@ -3,7 +3,7 @@ package store_test
 import (
 	"reflect"
 	"testing"
-	"stack/src/store"
+	"solune/store"
 )
 
 func TestKeyValueStoreManager(test *testing.T) {

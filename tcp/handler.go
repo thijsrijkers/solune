@@ -5,8 +5,8 @@ import (
     "fmt"
     "net"
     "strings"
-    "stack/src/sql"
-    "stack/src/store"
+    "solune/sql"
+    "solune/store"
 )
 
 type Server struct {

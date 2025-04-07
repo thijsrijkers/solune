@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"stack/src/store"
+	"solune/store"
 )
 
 func TestValidateKey(t *testing.T) {

@@ -1,8 +1,8 @@
 package main
 
 import (
-    "stack/src/store"
-    "stack/src/tcp"
+    "solune/store"
+    "solune/tcp"
 )
 
 func main() {
