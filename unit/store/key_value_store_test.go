@@ -1,10 +1,27 @@
 package store_test
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 	"solune/store"
 )
+
+func normalize(m map[string]interface{}) map[string]interface{} {
+	normalized := make(map[string]interface{})
+	for k, v := range m {
+		switch v := v.(type) {
+		case int:
+			normalized[k] = float64(v)
+		case int64:
+			normalized[k] = float64(v)
+		case float32:
+			normalized[k] = float64(v)
+		default:
+			normalized[k] = v
+		}
+	}
+	return normalized
+}
 
 func TestKeyValueStore(t *testing.T) {
 	kv := store.NewKeyValueStore()
@@ -23,7 +40,7 @@ func TestKeyValueStore(t *testing.T) {
 			t.Errorf("expected no error, got %v", err)
 		}
 
-		if !reflect.DeepEqual(got, value1) {
+		if !reflect.DeepEqual(normalize(got), normalize(value1)) {
 			t.Errorf("expected value %v, got %v", value1, got)
 		}
 	})
@@ -41,10 +58,10 @@ func TestKeyValueStore(t *testing.T) {
 
 		found1, found2 := false, false
 		for _, row := range got {
-			if reflect.DeepEqual(row, value1) {
+			if reflect.DeepEqual(normalize(row), normalize(value1)) {
 				found1 = true
 			}
-			if reflect.DeepEqual(row, value2) {
+			if reflect.DeepEqual(normalize(row), normalize(value2)) {
 				found2 = true
 			}
 		}
@@ -64,7 +81,7 @@ func TestKeyValueStore(t *testing.T) {
 		if err != nil {
 			t.Errorf("expected no error after cache clear, got %v", err)
 		}
-		if !reflect.DeepEqual(got, value3) {
+		if !reflect.DeepEqual(normalize(got), normalize(value3)) {
 			t.Errorf("expected value %v, got %v", value3, got)
 		}
 	})

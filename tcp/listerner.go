@@ -14,7 +14,7 @@ func StartServer(port string, manager *store.DataStoreManager) {
     }
     defer listener.Close()
 
-    fmt.Println("SQL Database Server listening on port", port)
+    fmt.Println("Listening on port", port)
 
     server := NewServer(manager)
 
