@@ -86,10 +86,6 @@ Where:
    ```
 - This command retrieves all data from the system_config store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
-##### Notes:
-- **Key and Data are optional** depending on the action (for example, **`get`** requires a key but not data).
-- The **`store`** field is always required to specify where to look for or store the data.
-
 ### 4. Unit Testing
 To run the unit tests, navigate to the source folder and run:
 
