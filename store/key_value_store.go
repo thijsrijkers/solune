@@ -49,18 +49,22 @@ func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error)
 	return nil, &KeyNotFoundError{Key: key}
 }
 
+
 func (store *KeyValueStore) GetAllData() []map[string]interface{} {
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
 	var result []map[string]interface{}
-	for _, binValue := range store.data {
+
+	for key, binValue := range store.data {
 		if m, err := data.BinaryToMap(binValue); err == nil {
+			m["key"] = key
 			result = append(result, m)
 		}
 	}
 	return result
 }
+
 
 func (store *KeyValueStore) ClearCache() {
 	store.mutex.Lock()

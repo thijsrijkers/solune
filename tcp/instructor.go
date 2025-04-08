@@ -8,18 +8,21 @@ import (
 type Behavior struct {
 	Instruction string
 	Store       string
+	Key       	string
+	Data 		string
 }
 
 func ParseCommand(command string) (Behavior, error) {
 	parts := strings.Split(command, "|")
-	if len(parts) != 2 {
+
+	if len(parts) < 2 {
 		return Behavior{}, errors.New("invalid command format")
 	}
 
 	var b Behavior
 
 	for _, part := range parts {
-		kv := strings.SplitN(part, ":", 2)
+		kv := strings.SplitN(part, "=", 2)
 		if len(kv) != 2 {
 			return Behavior{}, errors.New("invalid key:value pair")
 		}
@@ -32,6 +35,10 @@ func ParseCommand(command string) (Behavior, error) {
 			b.Instruction = value
 		case "store":
 			b.Store = value
+		case "key":
+			b.Key = value
+		case "data":
+			b.Data = value
 		default:
 			return Behavior{}, errors.New("unknown key: " + key)
 		}

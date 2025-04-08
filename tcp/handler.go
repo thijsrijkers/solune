@@ -2,11 +2,12 @@ package tcp
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"strings"
-	"encoding/json"
+	"github.com/google/uuid"
 	"solune/store"
 )
 
@@ -25,59 +26,99 @@ func (s *Server) HandleClient(conn net.Conn) {
 	for {
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			fmt.Println("Read error:", err)
+			handleReadError(err)
 			return
 		}
 
 		input = strings.TrimSpace(input)
-
-		// Parse command (assuming you have some logic to parse it into an instruction and store name)
 		b, err := ParseCommand(input)
 		if err != nil {
-			conn.Write([]byte("Error: " + err.Error() + "\n"))
+			writeError(conn, err)
 			return
 		}
 
-		// Call the private execute method
-		result, err := s.execute(b.Instruction, b.Store)
+		result, err := s.execute(b.Instruction, b.Store, b.Key, b.Data)
 		if err != nil {
-			conn.Write([]byte("Error: " + err.Error() + "\n"))
+			writeError(conn, err)
 			return
 		}
 
-		// Format the response and send it back to the client
-		if len(result) > 0 {
-			for _, item := range result {
-				// Marshal the map to JSON format
-				jsonData, err := json.Marshal(item)
-				if err != nil {
-					conn.Write([]byte("Error: failed to serialize data to JSON\n"))
-					return
-				}
-				conn.Write([]byte(fmt.Sprintf("%s\n", jsonData)))
-			}
-		} else {
-			conn.Write([]byte("404\n"))
-		}
+		writeResult(conn, result)
 	}
 }
 
-
-func (s *Server) execute(action, storeName string) ([]map[string]interface{}, error) {
-	// Retrieve the store by name
+func (s *Server) execute(action, storeName, key, data string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		return nil, fmt.Errorf("store '%s' not found", storeName)
 	}
 
-	// Handle the action
 	switch action {
 	case "get":
-		return store.GetAllData(), nil
+		return s.handleGet(store, key)
+	case "set":
+		return s.handleSet(store, data)
 	default:
 		return nil, fmt.Errorf("unsupported action: %s", action)
+	}
+}
+
+func (s *Server) handleGet(store *store.KeyValueStore, key string) ([]map[string]interface{}, error) {
+	if key != "" {
+		uuidKey, err := uuid.Parse(key)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing UUID: %s", err)
+		}
+
+		data, err := store.Get(uuidKey)
+		if err != nil {
+			return nil, err
+		}
+		return []map[string]interface{}{data}, nil
+	}
+	return store.GetAllData(), nil
+}
+
+func (s *Server) handleSet(store *store.KeyValueStore, data string) ([]map[string]interface{}, error) {
+	var parsedData map[string]interface{}
+	if data != "" {
+		err := json.Unmarshal([]byte(data), &parsedData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse data: %s", err)
+		}
+	}
+
+	newUUID := uuid.New()
+	err := store.Set(newUUID, parsedData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set data: %s", err)
+	}
+
+	return []map[string]interface{}{{"status": 200}}, nil
+}
+
+func handleReadError(err error) {
+	if err == io.EOF {
+		return
+	}
+	fmt.Println("Read error:", err)
+}
+
+func writeError(conn net.Conn, err error) {
+	conn.Write([]byte("Error: " + err.Error() + "\n"))
+}
+
+func writeResult(conn net.Conn, result []map[string]interface{}) {
+	if len(result) > 0 {
+		for _, item := range result {
+			jsonData, err := json.Marshal(item)
+			if err != nil {
+				conn.Write([]byte("Error: failed to serialize data to JSON\n"))
+				return
+			}
+			conn.Write([]byte(fmt.Sprintf("%s\n", jsonData)))
+		}
+	} else {
+		conn.Write([]byte("{'status': 404}\n"))
 	}
 }
