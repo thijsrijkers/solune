@@ -56,12 +56,15 @@ func TestKeyValueStore(t *testing.T) {
 			t.Errorf("expected 2 records, got %d", len(got))
 		}
 
+		expected1 := normalize(map[string]interface{}{"key": key1, "name": "Alice", "age": 30})
+		expected2 := normalize(map[string]interface{}{"key": key2, "name": "Bob", "age": 25})
+
 		found1, found2 := false, false
 		for _, row := range got {
-			if reflect.DeepEqual(normalize(row), normalize(value1)) {
+			if reflect.DeepEqual(normalize(row), expected1) {
 				found1 = true
 			}
-			if reflect.DeepEqual(normalize(row), normalize(value2)) {
+			if reflect.DeepEqual(normalize(row), expected2) {
 				found2 = true
 			}
 		}

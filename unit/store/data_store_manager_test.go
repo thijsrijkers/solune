@@ -34,8 +34,9 @@ func TestDataStoreManager(t *testing.T) {
 	if len(all) != 1 {
 		t.Errorf("expected 1 record in GetAllData, got %d", len(all))
 	}
-	if !reflect.DeepEqual(all[0], value) {
-		t.Errorf("expected GetAllData to return %v, got %v", value, all[0])
+	expected := map[string]interface{}{"key": "user1", "name": "Alice", "age": 30}
+	if !reflect.DeepEqual(all[0], expected) {
+		t.Errorf("expected GetAllData to return %v, got %v", expected, all[0])
 	}
 
 	manager.AddStore("products")

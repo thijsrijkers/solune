@@ -48,22 +48,22 @@ func (s *Server) HandleClient(conn net.Conn) {
 }
 
 func (s *Server) execute(action, storeName, key, data string) ([]map[string]interface{}, error) {
-	store, exists := s.manager.GetStore(storeName)
-	if !exists {
-		return nil, fmt.Errorf("store '%s' not found", storeName)
-	}
-
 	switch action {
 	case "get":
-		return s.handleGet(store, key)
+		return s.handleGet(storeName, key)
 	case "set":
-		return s.handleSet(store, data)
+		return s.handleSet(storeName, key, data)
 	default:
 		return nil, fmt.Errorf("unsupported action: %s", action)
 	}
 }
 
-func (s *Server) handleGet(store *store.KeyValueStore, key string) ([]map[string]interface{}, error) {
+func (s *Server) handleGet(storeName string, key string) ([]map[string]interface{}, error) {
+	store, exists := s.manager.GetStore(storeName)
+	if !exists {
+		return nil, fmt.Errorf("store '%s' not found", storeName)
+	}
+
 	if key != "" {
 		uuidKey, err := uuid.Parse(key)
 		if err != nil {
@@ -79,14 +79,21 @@ func (s *Server) handleGet(store *store.KeyValueStore, key string) ([]map[string
 	return store.GetAllData(), nil
 }
 
-func (s *Server) handleSet(store *store.KeyValueStore, data string) ([]map[string]interface{}, error) {
+func (s *Server) handleSet(storeName string, key string, data string) ([]map[string]interface{}, error) {
+	store, exists := s.manager.GetStore(storeName)
+	if !exists {
+        s.manager.AddStore(storeName)
+        store, _ = s.manager.GetStore(storeName)
+		return []map[string]interface{}{{"status": 200}}, nil
+	}
+
 	var parsedData map[string]interface{}
 	if data != "" {
 		err := json.Unmarshal([]byte(data), &parsedData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse data: %s", err)
 		}
-	}
+	} 
 
 	newUUID := uuid.New()
 	err := store.Set(newUUID, parsedData)

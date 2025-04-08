@@ -90,6 +90,13 @@ Where:
    ```
 - This command retrieves all data from the system_config store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
+4. **Creating store**
+
+   ```bash
+   instruction=set|store=user_data
+   ```
+- This command will create a store called `user_data`.
+
 ### 4. Unit Testing
 To run the unit tests, navigate to the source folder and run:
 
