@@ -9,8 +9,9 @@ func NewDataStoreManager() *DataStoreManager {
 		stores: make(map[string]*KeyValueStore),
 	}
 }
-func (manager *DataStoreManager) AddStore(name string, store *KeyValueStore) {
-	manager.stores[name] = store
+
+func (manager *DataStoreManager) AddStore(name string) {
+	manager.stores[name] = NewKeyValueStore()
 }
 
 func (manager *DataStoreManager) GetStore(name string) (*KeyValueStore, bool) {
