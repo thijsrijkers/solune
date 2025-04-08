@@ -53,15 +53,12 @@ A port will be open through the TCP protocol so you can connect with the databas
 The command follows this format:
 ```bash
  instruction:<action>|store:<store_name>
+ 
 ```
 
-#### Available Actions:
-- **get**: Retrieve all data from the store.
-
-#### Example:
-```bash
- instruction:get|store:users
-```
+| Action  | Description                         |
+|---------|-------------------------------------|
+| **get** | Retrieve all data from the store.   |
 
 ### 4. Unit Testing
 To run the unit tests, navigate to the source folder and run:
