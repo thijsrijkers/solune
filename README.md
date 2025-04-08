@@ -68,6 +68,7 @@ Where:
 ##### Example Commands:
 
 1. **Set Data**
+
    ```bash
    instruction:=set|store=user_data|key=user123|data={"name": "John Doe", "age": 30}
    ```
@@ -75,12 +76,14 @@ Where:
 - This command stores the data `{"name": "John Doe", "age": 30}` in the `user_data` store under the key `user123`.
 
 2. **Get Data**
+
    ```bash
    instruction:=get|store=user_data|key=user123
    ```
 - This command retrieves the data associated with the key user123 from the user_data store.
 
 3. **Get Data Without Key**
+
    ```bash
    instruction:=get|store=system_config
    ```
