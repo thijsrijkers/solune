@@ -28,8 +28,8 @@ To run the Solune server locally, follow these steps:
 ### 1. Clone the repository:
 
 ```bash
-git clone https://github.com/thijsrijkers/Solune.git
-cd Solune
+git clone https://github.com/thijsrijkers/solune.git
+cd solune
 ```
 
 ### 2. Launch the server:
@@ -64,7 +64,7 @@ Where:
 
 - **`key`** (optional): The unique identifier used to access or save the data within the specified store. If the instruction is **`get`**, the `key` is required to specify which entry to retrieve. If the instruction is **`set`**, the `key` is required to specify the entry under which the data will be stored.
 
-- **`data`** (optional): The data to be stored in the store under the specified key. This is only required for the **`set`** action to define what data you want to save.
+- **`data`** (optional): The data to be stored in the store. This is only required for the **`set`** action to define what data you want to save.
 
 ##### Example Commands:
 
