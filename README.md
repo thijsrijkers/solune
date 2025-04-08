@@ -51,15 +51,16 @@ A port will be open through the TCP protocol so you can connect with the databas
 ### 3. Command Format
 The command follows this format:
 ```bash
- instruction:=<action>|store=<store_name>|key=<key_of_entry>|data=<data_to_store>
+ instruction:=<action>|store=<store_name>|key=<key>|data=<data>
 ```
 
 Where:
 - **`instruction`**: Specifies the action to be performed. The possible actions are:
   - **`get`**: Retrieve the data associated with the given key.
+  - **`get <without_key>`**: Retrieve the data associated in given store.
   - **`set`**: Store the provided data under the given key.
 
-- **`store`** (optional): The name of the store or the storage container where the data is to be saved or retrieved from. This is required for both **`get`** and **`set`** actions.
+- **`store`**: The name of the store where the data is to be saved or retrieved from. This is required for both **`get`** and **`set`** actions.
 
 - **`key`** (optional): The unique identifier used to access or save the data within the specified store. If the instruction is **`get`**, the `key` is required to specify which entry to retrieve. If the instruction is **`set`**, the `key` is required to specify the entry under which the data will be stored.
 
