@@ -71,7 +71,7 @@ Where:
 1. **Set Data**
 
    ```bash
-   instruction:=set|store=user_data|data={"name": "John Doe", "age": 30}
+   instruction=set|store=user_data|data={"name": "John Doe", "age": 30}
    ```
 
 - This command stores the data `{"key": "e35ed236-7469-4b35-b8c0-c784c38c2d2b", "name": "John Doe", "age": 30}` in the `user_data` store.
@@ -79,14 +79,14 @@ Where:
 2. **Get Data**
 
    ```bash
-   instruction:=get|store=user_data|key=e35ed236-7469-4b35-b8c0-c784c38c2d2b
+   instruction=get|store=user_data|key=e35ed236-7469-4b35-b8c0-c784c38c2d2b
    ```
 - This command retrieves the data associated with the key `e35ed236-7469-4b35-b8c0-c784c38c2d2b` from the user_data store.
 
 3. **Get Data Without Key**
 
    ```bash
-   instruction:=get|store=system_config
+   instruction=get|store=system_config
    ```
 - This command retrieves all data from the system_config store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
