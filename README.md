@@ -48,7 +48,22 @@ A port will be open through the TCP protocol so you can connect with the databas
  telnet localhost 9000  
 ```
 
-### 3. Unit Testing
+### 3. Command Format
+
+The command follows this format:
+```bash
+ instruction:<action>|store:<store_name>
+```
+
+#### Available Actions:
+- **get**: Retrieve all data from the store.
+
+#### Example:
+```bash
+ instruction:get|store:users
+```
+
+### 4. Unit Testing
 To run the unit tests, navigate to the source folder and run:
 
 ```bash

@@ -29,43 +29,69 @@ func simulateClient(t *testing.T, conn net.Conn, input string, expected string) 
     }
 }
 
-func TestHandleClient_Ping(t *testing.T) {
+func TestHandleClient_Success(t *testing.T) {
     serverConn, clientConn := net.Pipe()
     defer serverConn.Close()
     defer clientConn.Close()
 
     manager := store.NewDataStoreManager()
+    manager.AddStore("users")
+
+    usersStore, _ := manager.GetStore("users")
+    usersStore.Set("1", map[string]interface{}{"name": "root", "password": "1234"})
+
     server := tcp.NewServer(manager)
 
     go server.HandleClient(serverConn)
 
-    simulateClient(t, clientConn, "PING", "PING")
+    simulateClient(t, clientConn, "instruction:get|store:users", `{"name":"root","password":"1234"}`)
 }
 
-func TestHandleClient_Echo(t *testing.T) {
+func TestHandleClient_StoreNotFound(t *testing.T) {
     serverConn, clientConn := net.Pipe()
     defer serverConn.Close()
     defer clientConn.Close()
 
     manager := store.NewDataStoreManager()
+
     server := tcp.NewServer(manager)
 
     go server.HandleClient(serverConn)
 
-    simulateClient(t, clientConn, "Hello", "Hello")
+    simulateClient(t, clientConn, "instruction:get|store:nonexistent", "Error: store 'nonexistent' not found")
 }
 
-func TestHandleClient_UnknownCommand(t *testing.T) {
+func TestHandleClient_UnsupportedAction(t *testing.T) {
     serverConn, clientConn := net.Pipe()
     defer serverConn.Close()
     defer clientConn.Close()
 
     manager := store.NewDataStoreManager()
+    manager.AddStore("users")
+
+    usersStore, _ := manager.GetStore("users")
+    usersStore.Set("1", map[string]interface{}{"name": "root", "password": "1234"})
+
     server := tcp.NewServer(manager)
 
     go server.HandleClient(serverConn)
 
-    simulateClient(t, clientConn, "FOO", "FOO")
+    simulateClient(t, clientConn, "instruction:unsupported|store:users", "Error: unsupported action: unsupported")
+}
+
+func TestHandleClient_NoData(t *testing.T) {
+    serverConn, clientConn := net.Pipe()
+    defer serverConn.Close()
+    defer clientConn.Close()
+
+    manager := store.NewDataStoreManager()
+    manager.AddStore("users")
+
+    server := tcp.NewServer(manager)
+
+    go server.HandleClient(serverConn)
+
+    simulateClient(t, clientConn, "instruction:get|store:users", "404")
 }
 
 func TestHandleClient_ClientDisconnect(t *testing.T) {
