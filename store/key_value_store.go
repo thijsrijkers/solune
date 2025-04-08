@@ -1,52 +1,73 @@
 package store
 
 import (
-	"reflect"
-	"errors"
+	"fmt"
+	"sync"
 )
 
 type KeyValueStore struct {
 	data   map[interface{}]map[string]interface{}
-	schema Schema
+	cache  map[interface{}]map[string]interface{}
+	mutex  sync.RWMutex
 }
 
-func NewKeyValueStore(keyType reflect.Type, columnTypes ColumnSchema, validate func(map[string]interface{}) error) *KeyValueStore {
+func NewKeyValueStore() *KeyValueStore {
 	return &KeyValueStore{
-		data: make(map[interface{}]map[string]interface{}),
-		schema: Schema{
-			KeyType:     keyType,
-			ColumnTypes: columnTypes,
-			Validate:    validate,
-		},
+		data:  make(map[interface{}]map[string]interface{}),
+		cache: make(map[interface{}]map[string]interface{}),
 	}
 }
 
 func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) error {
-	if err := store.schema.ValidateKey(key); err != nil {
-		return err
-	}
-	if err := store.schema.ValidateRow(value); err != nil {
-		return err
-	}
+	// Lock the store for writes
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	store.cache[key] = value
+	
 	store.data[key] = value
 	return nil
 }
 
 func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error) {
-	if err := store.schema.ValidateKey(key); err != nil {
-		return nil, err
+	if value, found := store.cache[key]; found {
+		return value, nil
 	}
-	value, exists := store.data[key]
-	if !exists {
-		return nil, errors.New("key not found")
+
+	// Lock the store for reads
+	store.mutex.RLock()
+	defer store.mutex.RUnlock()
+
+	if value, exists := store.data[key]; exists {
+		store.cache[key] = value
+		return value, nil
 	}
-	return value, nil
+
+	return nil, &KeyNotFoundError{Key: key}
 }
 
 func (store *KeyValueStore) GetAllData() []map[string]interface{} {
+	store.mutex.RLock()
+	defer store.mutex.RUnlock()
+
 	var result []map[string]interface{}
 	for _, row := range store.data {
 		result = append(result, row)
 	}
 	return result
+}
+
+func (store *KeyValueStore) ClearCache() {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	store.cache = make(map[interface{}]map[string]interface{})
+}
+
+type KeyNotFoundError struct {
+	Key interface{}
+}
+
+func (e *KeyNotFoundError) Error() string {
+	return fmt.Sprintf("key %v not found", e.Key)
 }

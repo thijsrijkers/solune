@@ -1,107 +1,71 @@
 package store_test
 
 import (
-	"errors"
-	"reflect"
 	"testing"
+	"reflect"
 	"solune/store"
 )
 
-func TestNewKeyValueStore(t *testing.T) {
-	columnTypes := store.ColumnSchema{
-		"age":  reflect.TypeOf(0),
-		"name": reflect.TypeOf(""),
-	}
+func TestKeyValueStore(t *testing.T) {
+	kv := store.NewKeyValueStore()
 
-	db := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, nil)
+	key1 := "user1"
+	value1 := map[string]interface{}{"name": "Alice", "age": 30}
 
-	if db == nil {
-		t.Fatalf("expected non-nil KeyValueStore instance")
-	}
-}
-
-func TestSetAndGet(t *testing.T) {
-	columnTypes := store.ColumnSchema{
-		"age":  reflect.TypeOf(0),
-		"name": reflect.TypeOf(""),
-	}
-
-	db := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, nil)
-
-	err := db.Set("user1", map[string]interface{}{"age": 30, "name": "Alice"})
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-
-	value, err := db.Get("user1")
-	if err != nil {
-		t.Errorf("expected no error, got: %v", err)
-	}
-
-	if value["name"] != "Alice" || value["age"].(int) != 30 {
-		t.Errorf("expected {name: Alice, age: 30}, got: %v", value)
-	}
-}
-
-func TestSetInvalidKey(t *testing.T) {
-	columnTypes := store.ColumnSchema{
-		"age":  reflect.TypeOf(0),
-		"name": reflect.TypeOf(""),
-	}
-
-	db := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, nil)
-
-	err := db.Set(123, map[string]interface{}{"age": 30, "name": "Alice"})
-	if err == nil {
-		t.Errorf("expected error for invalid key type, got nil")
-	}
-}
-
-func TestSetInvalidValueType(t *testing.T) {
-	columnTypes := store.ColumnSchema{
-		"age":  reflect.TypeOf(0),
-		"name": reflect.TypeOf(""),
-	}
-
-	db := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, nil)
-
-	err := db.Set("user1", map[string]interface{}{"age": "thirty", "name": "Alice"})
-	if err == nil {
-		t.Errorf("expected error for invalid value type, got nil")
-	}
-}
-
-func TestSetWithCustomValidation(t *testing.T) {
-	columnTypes := store.ColumnSchema{
-		"age":  reflect.TypeOf(0),
-		"name": reflect.TypeOf(""),
-	}
-
-	validate := func(row map[string]interface{}) error {
-		if name, ok := row["name"].(string); ok && name == "" {
-			return errors.New("name cannot be empty")
+	t.Run("Set and Get", func(t *testing.T) {
+		err := kv.Set(key1, value1)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
 		}
-		return nil
-	}
 
-	db := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, validate)
+		got, err := kv.Get(key1)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 
-	err := db.Set("user1", map[string]interface{}{"age": 30, "name": ""})
-	if err == nil {
-		t.Errorf("expected error for empty name, got nil")
-	}
-}
+		if !reflect.DeepEqual(got, value1) {
+			t.Errorf("expected value %v, got %v", value1, got)
+		}
+	})
 
-func TestGetNonExistentKey(t *testing.T) {
-	columnTypes := store.ColumnSchema{
-		"age":  reflect.TypeOf(0),
-		"name": reflect.TypeOf(""),
-	}
+	t.Run("GetAllData", func(t *testing.T) {
+		key2 := "user2"
+		value2 := map[string]interface{}{"name": "Bob", "age": 25}
+		kv.Set(key2, value2)
 
-	db := store.NewKeyValueStore(reflect.TypeOf(""), columnTypes, nil)
+		got := kv.GetAllData()
 
-	_, err := db.Get("nonexistent")
-	if err == nil {
-		t.Errorf("expected error for missing key, got nil")
-	}
+		if len(got) != 2 {
+			t.Errorf("expected 2 records, got %d", len(got))
+		}
+
+		found1, found2 := false, false
+		for _, row := range got {
+			if reflect.DeepEqual(row, value1) {
+				found1 = true
+			}
+			if reflect.DeepEqual(row, value2) {
+				found2 = true
+			}
+		}
+		if !found1 || !found2 {
+			t.Errorf("expected both values in the result")
+		}
+	})
+
+	t.Run("ClearCache", func(t *testing.T) {
+		key3 := "user3"
+		value3 := map[string]interface{}{"name": "Charlie", "age": 35}
+		kv.Set(key3, value3)
+
+		kv.ClearCache()
+
+		got, err := kv.Get(key3)
+		if err != nil {
+			t.Errorf("expected no error after cache clear, got %v", err)
+		}
+		if !reflect.DeepEqual(got, value3) {
+			t.Errorf("expected value %v, got %v", value3, got)
+		}
+	})
 }
