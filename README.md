@@ -49,11 +49,6 @@ A port will be open through the TCP protocol so you can connect with the databas
 ```
 
 ### 3. Command Format
-
-| Action  | Description                         |
-|---------|-------------------------------------|
-| **get** | Retrieve all data from the store.   |
-
 The command follows this format:
 ```bash
  instruction:<action>|store:<store_name>
