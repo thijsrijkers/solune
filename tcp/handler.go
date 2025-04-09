@@ -21,8 +21,10 @@ func NewServer(manager *store.DataStoreManager) *Server {
 
 func (s *Server) HandleClient(conn net.Conn) {
 	defer conn.Close()
-
+	
+	writer := bufio.NewWriter(conn)
 	reader := bufio.NewReader(conn)
+
 	for {
 		input, err := reader.ReadString('\n')
 		if err != nil {
@@ -33,17 +35,17 @@ func (s *Server) HandleClient(conn net.Conn) {
 		input = strings.TrimSpace(input)
 		b, err := ParseCommand(input)
 		if err != nil {
-			writeError(conn, err)
+			writeError(writer, err)
 			return
 		}
 
 		result, err := s.execute(b.Instruction, b.Store, b.Key, b.Data)
 		if err != nil {
-			writeError(conn, err)
+			writeError(writer, err)
 			return
 		}
-
-		writeResult(conn, result)
+		
+		writeResult(writer, result)
 	}
 }
 
@@ -67,7 +69,7 @@ func (s *Server) handleGet(storeName string, key string) ([]map[string]interface
 	if key != "" {
 		uuidKey, err := uuid.Parse(key)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing UUID: %s", err)
+			return nil, fmt.Errorf("error parsing UUID: %s", err)
 		}
 
 		data, err := store.Get(uuidKey)
@@ -82,8 +84,8 @@ func (s *Server) handleGet(storeName string, key string) ([]map[string]interface
 func (s *Server) handleSet(storeName string, key string, data string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
-        s.manager.AddStore(storeName)
-        store, _ = s.manager.GetStore(storeName)
+		s.manager.AddStore(storeName)
+		store, _ = s.manager.GetStore(storeName)
 		return []map[string]interface{}{{"status": 200}}, nil
 	}
 
@@ -93,7 +95,7 @@ func (s *Server) handleSet(storeName string, key string, data string) ([]map[str
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse data: %s", err)
 		}
-	} 
+	}
 
 	newUUID := uuid.New()
 	err := store.Set(newUUID, parsedData)
@@ -111,21 +113,31 @@ func handleReadError(err error) {
 	fmt.Println("Read error:", err)
 }
 
-func writeError(conn net.Conn, err error) {
-	conn.Write([]byte("Error: " + err.Error() + "\n"))
+func writeError(writer *bufio.Writer, err error) {
+	resp := map[string]interface{}{
+		"error": err.Error(),
+	}
+	jsonData, _ := json.Marshal(resp)
+	writer.WriteString(string(jsonData) + "\n")
+	writer.Flush()
 }
 
-func writeResult(conn net.Conn, result []map[string]interface{}) {
-	if len(result) > 0 {
-		for _, item := range result {
-			jsonData, err := json.Marshal(item)
-			if err != nil {
-				conn.Write([]byte("Error: failed to serialize data to JSON\n"))
-				return
-			}
-			conn.Write([]byte(fmt.Sprintf("%s\n", jsonData)))
-		}
-	} else {
-		conn.Write([]byte("{'status': 404}\n"))
-	}
+func writeResult(writer *bufio.Writer, result []map[string]interface{}) {
+    if len(result) > 0 {
+        for _, item := range result {
+            jsonData, err := json.Marshal(item)
+            if err != nil {
+                writer.WriteString(`{"error": "failed to serialize data to JSON"}` + "\n")
+                writer.Flush()
+                fmt.Println("Error marshaling JSON:", err)
+                return
+            }
+            dataToSend := string(jsonData) + "\n"
+            writer.WriteString(dataToSend)
+        }
+    } else {
+        dataToSend := `{"status": 404}` + "\n"
+        writer.WriteString(dataToSend)
+    }
+    writer.Flush()
 }
