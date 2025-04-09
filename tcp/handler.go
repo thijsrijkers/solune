@@ -55,6 +55,8 @@ func (s *Server) execute(action, storeName, key, data string) ([]map[string]inte
 		return s.handleGet(storeName, key)
 	case "set":
 		return s.handleSet(storeName, key, data)
+	case "delete":
+		return s.handleDelete(storeName, key)
 	default:
 		return nil, fmt.Errorf("unsupported action: %s", action)
 	}
@@ -81,6 +83,36 @@ func (s *Server) handleGet(storeName string, key string) ([]map[string]interface
 	return store.GetAllData(), nil
 }
 
+func (s *Server) handleDelete(storeName string, key string) ([]map[string]interface{}, error) {
+	store, exists := s.manager.GetStore(storeName)
+	if !exists {
+		return nil, fmt.Errorf("store '%s' not found", storeName)
+	}
+
+	if key != "" {
+		uuidKey, err := uuid.Parse(key)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing UUID: %s", err)
+		}
+
+		err = store.Delete(uuidKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete data: %s", err)
+		}
+
+		return []map[string]interface{}{{"status": 200}}, nil
+	}
+
+	removed := s.manager.RemoveStore(storeName)
+	if removed {
+		return []map[string]interface{}{{"status": 200}}, nil
+	}
+
+	return nil, fmt.Errorf("failed to remove store '%s'", storeName)
+}
+
+
+
 func (s *Server) handleSet(storeName string, key string, data string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
@@ -97,14 +129,22 @@ func (s *Server) handleSet(storeName string, key string, data string) ([]map[str
 		}
 	}
 
-	newUUID := uuid.New()
-	err := store.Set(newUUID, parsedData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set data: %s", err)
+	if key != "" {
+		err := store.Update(key, parsedData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update data: %s", err)
+		}
+	} else {
+		newUUID := uuid.New().String()
+		err := store.Set(newUUID, parsedData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set data: %s", err)
+		}
 	}
 
 	return []map[string]interface{}{{"status": 200}}, nil
 }
+
 
 func handleReadError(err error) {
 	if err == io.EOF {
