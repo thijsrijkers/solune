@@ -45,7 +45,7 @@ This will start the Solune server locally, allowing you to interact with the dat
 A port will be open through TCP so you can communicate with the database. To communicate we created a python script where you can define the command that you want to execute:
 
 ```bash
-python .\communication_test.py 
+python .\communication.py 
 ```
 
 ### 3. Command Format
