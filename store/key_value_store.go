@@ -49,6 +49,38 @@ func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error)
 	return nil, &KeyNotFoundError{Key: key}
 }
 
+func (store *KeyValueStore) Update(key interface{}, newValue map[string]interface{}) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	_, exists := store.data[key]
+	if !exists {
+		return &KeyNotFoundError{Key: key}
+	}
+
+	binValue, err := data.MapToBinary(newValue)
+	if err != nil {
+		return err
+	}
+
+	store.data[key] = binValue
+	store.cache[key] = binValue
+	return nil
+}
+
+func (store *KeyValueStore) Delete(key interface{}) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	if _, exists := store.data[key]; !exists {
+		return &KeyNotFoundError{Key: key}
+	}
+
+	delete(store.data, key)
+	delete(store.cache, key)
+	return nil
+}
+
 
 func (store *KeyValueStore) GetAllData() []map[string]interface{} {
 	store.mutex.RLock()

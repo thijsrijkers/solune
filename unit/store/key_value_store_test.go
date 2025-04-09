@@ -88,4 +88,33 @@ func TestKeyValueStore(t *testing.T) {
 			t.Errorf("expected value %v, got %v", value3, got)
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		newValue := map[string]interface{}{"name": "Alice Updated", "age": 31}
+		err := kv.Update(key1, newValue)
+		if err != nil {
+			t.Errorf("expected no error on update, got %v", err)
+		}
+
+		got, err := kv.Get(key1)
+		if err != nil {
+			t.Errorf("expected no error on get after update, got %v", err)
+		}
+
+		if !reflect.DeepEqual(normalize(got), normalize(newValue)) {
+			t.Errorf("expected updated value %v, got %v", newValue, got)
+		}
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		err := kv.Delete(key1)
+		if err != nil {
+			t.Errorf("expected no error on delete, got %v", err)
+		}
+
+		_, err = kv.Get(key1)
+		if err == nil {
+			t.Errorf("expected error when getting deleted key, got nil")
+		}
+	})
 }
