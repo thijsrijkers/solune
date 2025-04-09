@@ -42,10 +42,10 @@ go run .
 
 This will start the Solune server locally, allowing you to interact with the database.
 
-A port will be open through the TCP protocol so you can connect with the database with:
+A port will be open through TCP so you can communicate with the database. To communicate we created a python script where you can define the command that you want to execute:
 
 ```bash
- telnet localhost 9000  
+python .\communication_test.py 
 ```
 
 ### 3. Command Format
