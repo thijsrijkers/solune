@@ -135,7 +135,7 @@ func (s *Server) handleSet(storeName string, key string, data string) ([]map[str
 			return nil, fmt.Errorf("failed to update data: %s", err)
 		}
 	} else {
-		newUUID := uuid.New().String()
+		newUUID := uuid.New()
 		err := store.Set(newUUID, parsedData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set data: %s", err)

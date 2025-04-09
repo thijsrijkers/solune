@@ -5,7 +5,7 @@ server_port = 9000
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-command = 'instruction=set|store=user_data'
+command = ''
 
 try:
     client_socket.connect((server_ip, server_port))
