@@ -10,32 +10,32 @@ func TestDataStoreManager(t *testing.T) {
 	manager := store.NewDataStoreManager()
 
 	manager.AddStore("users")
-	store, exists := manager.GetStore("users")
+	userStore, exists := manager.GetStore("users")
 	if !exists {
 		t.Fatalf("expected store 'users' to exist")
 	}
 
 	key := "user1"
 	value := map[string]interface{}{"name": "Alice", "age": 30}
-	err := store.Set(key, value)
+	err := userStore.Set(key, value)
 	if err != nil {
 		t.Errorf("expected no error from Set, got %v", err)
 	}
 
-	got, err := store.Get(key)
+	got, err := userStore.Get(key)
 	if err != nil {
 		t.Errorf("expected no error from Get, got %v", err)
 	}
-	if !reflect.DeepEqual(got, value) {
+	if !reflect.DeepEqual(normalize(got), normalize(value)) {
 		t.Errorf("expected value %v, got %v", value, got)
 	}
 
-	all := store.GetAllData()
+	all := userStore.GetAllData()
 	if len(all) != 1 {
 		t.Errorf("expected 1 record in GetAllData, got %d", len(all))
 	}
-	expected := map[string]interface{}{"key": "user1", "name": "Alice", "age": 30}
-	if !reflect.DeepEqual(all[0], expected) {
+	expected := normalize(map[string]interface{}{"key": "user1", "name": "Alice", "age": 30})
+	if !reflect.DeepEqual(normalize(all[0]), expected) {
 		t.Errorf("expected GetAllData to return %v, got %v", expected, all[0])
 	}
 
@@ -43,5 +43,20 @@ func TestDataStoreManager(t *testing.T) {
 	_, exists = manager.GetStore("products")
 	if !exists {
 		t.Errorf("expected store 'products' to exist")
+	}
+
+	removed := manager.RemoveStore("users")
+	if !removed {
+		t.Errorf("expected RemoveStore to return true for existing store")
+	}
+
+	_, exists = manager.GetStore("users")
+	if exists {
+		t.Errorf("expected 'users' store to be removed")
+	}
+
+	removed = manager.RemoveStore("nonexistent")
+	if removed {
+		t.Errorf("expected RemoveStore to return false for non-existent store")
 	}
 }
