@@ -32,17 +32,14 @@ git clone https://github.com/thijsrijkers/solune.git
 cd solune
 ```
 
-### 2. Launch the server:
+### 2. Launch the server with Docker:
 
-Inside the `source` folder:
+From the project root directory (where `docker-compose.yml` is located), run:
 
 ```bash
-go run .
+docker-compose up --build
 ```
-
-This will start the Solune server locally, allowing you to interact with the database.
-
-A port will be open through TCP so you can communicate with the database. To communicate we created a python script where you can define the command that you want to execute:
+This will build the Docker image and start the Solune server inside a container, exposing it on port 9000. You can now interact with the database through the running container. We created a python script where you can define the command that you want to execute:
 
 ```bash
 python .\communication.py 

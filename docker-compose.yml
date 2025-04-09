@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  solune:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solune
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
