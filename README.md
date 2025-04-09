@@ -53,15 +53,16 @@ The command follows this format:
 
 Where:
 - **`instruction`**: Specifies the action to be performed. The possible actions are:
-  - **`get`**: Retrieve the data associated with the given key.
-  - **`get <without_key>`**: Retrieve the data associated in given store.
-  - **`set`**: Store the provided data under the given key.
+  - **`get`**: Retrieve the data associated with the given key. Without a key, it will provide all data from given store.
+  - **`set`**: Store the provided data to the given store. If you perform a **`set`** with both **`data`** and **`key`**, it will replace the old value underneath the key with the new value of data.
+  - **`delete`**: If you provide a **`key`** and **`store`**, it will remove the entry in the store. If you do not provide a **`key`**, it will delete the entire store.
 
-- **`store`**: The name of the store where the data is to be saved or retrieved from. This is required for both **`get`** and **`set`** actions.
+- **`store`**: The name of the store where the data is to be saved or retrieved from. This is required for both **`get`**,  **`set`** and **`delete`** actions.
 
-- **`key`** (optional): The unique identifier used to access or save the data within the specified store. If the instruction is **`get`**, the `key` is required to specify which entry to retrieve. If the instruction is **`set`**, the `key` is required to specify the entry under which the data will be stored.
+- **`key`** (optional): The unique identifier used to access or save the data within the specified store. If the instruction is **`get`**, the **`key`** is required to specify which entry to retrieve. If the instruction is **`set`**, the **`key`** is required to specify the entry under which the data will be stored. If the instruction is **`delete`**, the **`key`** is required to specify which entry to remove from the store.
 
 - **`data`** (optional): The data to be stored in the store. This is only required for the **`set`** action to define what data you want to save.
+
 
 ##### Example Commands:
 
