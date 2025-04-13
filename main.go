@@ -1,11 +1,17 @@
 package main
 
 import (
-    "solune/store"
-    "solune/tcp"
+	"solune/sharding"
 )
 
 func main() {
-    manager := store.NewDataStoreManager()
-    tcp.StartServer("9000", manager)
+	ports := []string{"9000"}
+
+	for _, port := range ports {
+		s := shard.NewShard(port)
+		go s.Start()
+	}
+
+	select {} // block forever
 }
+
