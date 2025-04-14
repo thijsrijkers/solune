@@ -1,4 +1,37 @@
-# Documentation
+# 🗺️ Solune Project Roadmap
 
-#### Functionality goals
-One of the major design changes, which will involve significant logic and functionality, is the implementation of the 'one global source of truth' principle. The concept is straightforward: tables have keys to make entries identifiable, and entries are related to one another to retrieve additional data. With this principle, all primary keys will be unique across all tables. This allows data retrieval to be based on a single source of truth—the unique primary key. However, this presents a challenge when managing relationships between tables, and addressing this will be one of the key challenges of the project.
+## ✅ Completed Milestones
+
+### 1. Core Infrastructure
+- [x] Go-based architecture implemented.
+- [x] Modular design with clear separation (`data`, `store`, `tcp`).
+
+### 2. Networking and Communication
+- [x] Basic TCP networking module created.
+- [x] Communication script (`communication.py`) for interfacing or testing.
+
+### 3. Deployment and Environment
+- [x] Dockerfile and docker-compose setup for containerized deployment.
+
+---
+
+## 🚧 Future Developments
+
+### 1. Scalability and Performance
+- [ ] Expand sharding module for distributed data storage.
+- [ ] Expand sharding with data processing splitting.
+- [ ] Add replication and fault tolerance features.
+
+### 2. Security and Access Control
+- [ ] Implement authentication and authorization.
+- [ ] Add encryption for data at rest and in transit.
+
+### 3. User Interface and Tooling
+- [ ] Create an administrative web dashboard.
+- [ ] Develop CLI tools for interaction and management.
+
+### 4. Documentation and Community Engagement
+- [ ] Expand documentation in the `doc` module.
+- [ ] Encourage community contributions, issues, and discussions.
+
+---
