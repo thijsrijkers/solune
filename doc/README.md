@@ -22,15 +22,24 @@
 - [ ] Expand sharding with data processing splitting.
 - [ ] Add replication and fault tolerance features.
 
-### 2. Security and Access Control
+### 2. Data Durability
+- [ ] Implement persistent storage to allow data recovery after downtime (currently in-memory only).
+- [ ] Explore write-ahead logging or snapshotting mechanisms.
+
+### 3. Data Import & Export
+- [ ] Add support for exporting data (e.g., to JSON, CSV, or binary formats).
+- [ ] Implement import functionality for bootstrapping or migration.
+- [ ] Support selective export/import (e.g., per key range or shard).
+
+### 4. Security and Access Control
 - [ ] Implement authentication and authorization.
 - [ ] Add encryption for data at rest and in transit.
 
-### 3. User Interface and Tooling
+### 5. User Interface and Tooling
 - [ ] Create an administrative web dashboard.
 - [ ] Develop CLI tools for interaction and management.
 
-### 4. Documentation and Community Engagement
+### 6. Documentation and Community Engagement
 - [ ] Expand documentation in the `doc` module.
 - [ ] Encourage community contributions, issues, and discussions.
 
