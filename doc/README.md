@@ -39,8 +39,7 @@
 - [ ] Create an administrative web dashboard.
 - [ ] Develop CLI tools for interaction and management.
 
-### 6. Documentation and Community Engagement
+### 6. Documentation
 - [ ] Expand documentation in the `doc` module.
-- [ ] Encourage community contributions, issues, and discussions.
 
 ---
