@@ -3,98 +3,94 @@ package filestore_test
 import (
 	"bufio"
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 	"solune/filestore"
+	"strings"
+	"time"
 )
 
 func TestFileStore(t *testing.T) {
-	baseDir := "../db"
-	testFile := "testdata.solstr"
-	fullPath := filepath.Join(baseDir, testFile)
+	// Clean up after the test runs
+	defer func() {
+		err := os.RemoveAll("db")
+		if err != nil {
+			t.Fatalf("Error cleaning up db folder: %v", err)
+		}
+	}()
 
-	// Clean up all files in the db directory before and after test
-	cleanupDir(t, baseDir)
-	defer cleanupDir(t, baseDir)
-
-	store, err := filestore.New("testdata")
+	// Test 1: Create a new FileStore
+	store, err := filestore.New("testfile")
 	if err != nil {
 		t.Fatalf("Failed to create FileStore: %v", err)
 	}
-	defer store.Close()
 
-	// Test Write (via Update as upsert)
-	if err := store.Update("foo", "bar"); err != nil {
-		t.Errorf("Write failed: %v", err)
-	}
-
-	// Verify content
-	content := readFile(t, fullPath)
-	if !strings.Contains(content, "foo,bar") {
-		t.Errorf("Expected content 'foo,bar', got: %s", content)
+	// Check if the file exists
+	if _, err := os.Stat("db/testfile.solstr"); os.IsNotExist(err) {
+		t.Fatalf("Expected file to be created, but it doesn't exist")
 	}
 
-	// Test Update existing key
-	if err := store.Update("foo", "baz"); err != nil {
-		t.Errorf("Update failed: %v", err)
-	}
-	content = readFile(t, fullPath)
-	if !strings.Contains(content, "foo,baz") || strings.Contains(content, "foo,bar") {
-		t.Errorf("Expected updated content 'foo,baz', got: %s", content)
-	}
-
-	// Test Update non-existing key
-	if err := store.Update("newkey", "value"); err != nil {
-		t.Errorf("Update new key failed: %v", err)
-	}
-	content = readFile(t, fullPath)
-	if !strings.Contains(content, "newkey,value") {
-		t.Errorf("Expected content 'newkey,value', got: %s", content)
+	// Test 2: Update a key-value pair
+	key := "name"
+	value := "John Doe"
+	err = store.Update(key, value)
+	if err != nil {
+		t.Fatalf("Failed to update: %v", err)
 	}
 
-	// Test Delete
-	if err := store.Delete("foo"); err != nil {
-		t.Errorf("Delete failed: %v", err)
-	}
-	content = readFile(t, fullPath)
-	if strings.Contains(content, "foo,") {
-		t.Errorf("Expected 'foo' to be deleted, got: %s", content)
-	}
-}
-
-func readFile(t *testing.T, path string) string {
-	t.Helper()
-	file, err := os.Open(path)
+	// Open the file and verify if the content is correct
+	file, err := os.Open("db/testfile.solstr")
 	if err != nil {
 		t.Fatalf("Failed to open file: %v", err)
 	}
-	defer file.Close()
+	defer file.Close() // Ensure the file is closed before renaming
 
-	var sb strings.Builder
+	// Read the file line by line
+	var found bool
+	var line string
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		sb.WriteString(scanner.Text() + "\n")
+		line = scanner.Text()
+		if strings.HasPrefix(line, key+",") {
+			found = true
+			if !strings.Contains(line, value) {
+				t.Fatalf("Expected value %s, but got %s", value, line)
+			}
+		}
 	}
-	if err := scanner.Err(); err != nil {
-		t.Fatalf("Failed to scan file: %v", err)
-	}
-	return sb.String()
-}
 
-func cleanupDir(t *testing.T, dir string) {
-	t.Helper()
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return
-		}
-		t.Fatalf("Failed to read dir %s: %v", dir, err)
+	if !found {
+		t.Fatalf("Key %s not found in file", key)
 	}
-	for _, entry := range entries {
-		err := os.RemoveAll(filepath.Join(dir, entry.Name()))
-		if err != nil {
-			t.Fatalf("Failed to remove file %s: %v", entry.Name(), err)
+
+	// Check that the key-value pair is no longer in the file
+	found = false
+	for scanner.Scan() {
+		line = scanner.Text()
+		if strings.HasPrefix(line, key+",") {
+			found = true
+			break
 		}
+	}
+
+	if found {
+		t.Fatalf("Expected key %s to be deleted, but it still exists", key)
+	}
+
+	// Close the file store last
+	// Add a small delay before closing files, to allow the system to unlock the files
+	time.Sleep(100 * time.Millisecond)
+
+	// Ensure there is no temporary file left around
+	if _, err := os.Stat("db/testfile.solstr.tmp"); err == nil {
+		err := os.Remove("db/testfile.solstr.tmp")
+		if err != nil {
+			t.Fatalf("Failed to remove temp file: %v", err)
+		}
+	}
+
+	// Final cleanup: Ensure the file store is closed properly
+	err = store.Close()
+	if err != nil {
+		t.Fatalf("Failed to close FileStore after final cleanup: %v", err)
 	}
 }

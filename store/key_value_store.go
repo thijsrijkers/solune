@@ -3,19 +3,23 @@ package store
 import (
 	"fmt"
 	"sync"
+	"encoding/base64"
 	"solune/data"
+    "solune/filestore"
 )
 
 type KeyValueStore struct {
 	data  map[interface{}][]byte
 	cache map[interface{}][]byte
 	mutex sync.RWMutex
+	fileStore *filestore.FileStore
 }
 
-func NewKeyValueStore() *KeyValueStore {
+func NewKeyValueStore(fs *filestore.FileStore) *KeyValueStore {
 	return &KeyValueStore{
 		data:  make(map[interface{}][]byte),
 		cache: make(map[interface{}][]byte),
+		fileStore: fs,
 	}
 }
 
@@ -25,6 +29,11 @@ func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) e
 
 	binValue, err := data.MapToBinary(value)
 	if err != nil {
+		return err
+	}
+
+	
+	if err := store.fileStore.Update(fmt.Sprintf("%v", key), base64.StdEncoding.EncodeToString(binValue)); err != nil {
 		return err
 	}
 
@@ -63,6 +72,10 @@ func (store *KeyValueStore) Update(key interface{}, newValue map[string]interfac
 		return err
 	}
 
+	if err := store.fileStore.Update(fmt.Sprintf("%v", key), base64.StdEncoding.EncodeToString(binValue)); err != nil {
+		return err
+	}
+
 	store.data[key] = binValue
 	store.cache[key] = binValue
 	return nil
@@ -74,6 +87,10 @@ func (store *KeyValueStore) Delete(key interface{}) error {
 
 	if _, exists := store.data[key]; !exists {
 		return &KeyNotFoundError{Key: key}
+	}
+
+	if err := store.fileStore.Delete(fmt.Sprintf("%v", key)); err != nil {
+		return err
 	}
 
 	delete(store.data, key)

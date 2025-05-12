@@ -1,5 +1,10 @@
 package store
 
+import (
+	"log"
+    "solune/filestore"
+)
+
 type DataStoreManager struct {
 	stores map[string]*KeyValueStore
 }
@@ -11,7 +16,12 @@ func NewDataStoreManager() *DataStoreManager {
 }
 
 func (manager *DataStoreManager) AddStore(name string) {
-	manager.stores[name] = NewKeyValueStore()
+	fs, err := filestore.New(name)
+	if err != nil {
+		log.Printf("Failed to create filestore for %s: %v", name, err)
+		return
+	}
+	manager.stores[name] = NewKeyValueStore(fs)
 }
 
 func (manager *DataStoreManager) GetStore(name string) (*KeyValueStore, bool) {

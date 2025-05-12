@@ -21,7 +21,7 @@ func New(filename string) (*FileStore, error) {
 		filename += ".solstr"
 	}
 
-	baseDir := filepath.Join("..", "db")
+	baseDir := "db"
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, err
 	}

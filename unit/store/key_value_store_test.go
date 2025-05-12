@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 	"solune/store"
+	"solune/filestore"
 )
 
 func normalize(m map[string]interface{}) map[string]interface{} {
@@ -24,7 +25,13 @@ func normalize(m map[string]interface{}) map[string]interface{} {
 }
 
 func TestKeyValueStore(t *testing.T) {
-	kv := store.NewKeyValueStore()
+	// Initialize the file store with a test filename
+	fs, err := filestore.New("testKeyValueStore")
+	if err != nil {
+		t.Fatalf("failed to create file store: %v", err)
+	}
+
+	kv := store.NewKeyValueStore(fs)
 
 	key1 := "user1"
 	value1 := map[string]interface{}{"name": "Alice", "age": 30}
