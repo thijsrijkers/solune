@@ -26,7 +26,7 @@ func normalize(m map[string]interface{}) map[string]interface{} {
 
 func TestKeyValueStore(t *testing.T) {
 	// Initialize the file store with a test filename
-	fs, err := filestore.New("testKeyValueStore")
+	fs, err := filestore.New("testKeyValueStore", "9000")
 	if err != nil {
 		t.Fatalf("failed to create file store: %v", err)
 	}

@@ -2,21 +2,23 @@ package store
 
 import (
 	"log"
-    "solune/filestore"
+	"solune/filestore"
 )
 
 type DataStoreManager struct {
 	stores map[string]*KeyValueStore
+	port   string
 }
 
-func NewDataStoreManager() *DataStoreManager {
+func NewDataStoreManager(port string) *DataStoreManager {
 	return &DataStoreManager{
 		stores: make(map[string]*KeyValueStore),
+		port:   port,
 	}
 }
 
 func (manager *DataStoreManager) AddStore(name string) {
-	fs, err := filestore.New(name)
+	fs, err := filestore.New(name, manager.port)
 	if err != nil {
 		log.Printf("Failed to create filestore for %s: %v", name, err)
 		return

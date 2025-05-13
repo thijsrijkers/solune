@@ -19,13 +19,13 @@ func TestFileStore(t *testing.T) {
 	}()
 
 	// Test 1: Create a new FileStore
-	store, err := filestore.New("testfile")
+	store, err := filestore.New("testfile", "9000")
 	if err != nil {
 		t.Fatalf("Failed to create FileStore: %v", err)
 	}
 
 	// Check if the file exists
-	if _, err := os.Stat("db/testfile.solstr"); os.IsNotExist(err) {
+	if _, err := os.Stat("db/9000/testfile.solstr"); os.IsNotExist(err) {
 		t.Fatalf("Expected file to be created, but it doesn't exist")
 	}
 
@@ -38,7 +38,7 @@ func TestFileStore(t *testing.T) {
 	}
 
 	// Open the file and verify if the content is correct
-	file, err := os.Open("db/testfile.solstr")
+	file, err := os.Open("db/9000/testfile.solstr")
 	if err != nil {
 		t.Fatalf("Failed to open file: %v", err)
 	}

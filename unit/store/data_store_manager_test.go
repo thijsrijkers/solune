@@ -7,7 +7,7 @@ import (
 )
 
 func TestDataStoreManager(t *testing.T) {
-	manager := store.NewDataStoreManager()
+	manager := store.NewDataStoreManager("9000")
 
 	manager.AddStore("users")
 	userStore, exists := manager.GetStore("users")

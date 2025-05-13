@@ -16,12 +16,12 @@ type FileStore struct {
 	fileLock sync.Mutex
 }
 
-func New(filename string) (*FileStore, error) {
+func New(filename, port string) (*FileStore, error) {
 	if !strings.HasSuffix(filename, ".solstr") {
 		filename += ".solstr"
 	}
 
-	baseDir := "db"
+	baseDir := "db/" + port
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, err
 	}

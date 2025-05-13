@@ -14,7 +14,7 @@ type Shard struct {
 func NewShard(port string) *Shard {
 	return &Shard{
 		Port:    port,
-		manager: store.NewDataStoreManager(),
+		manager: store.NewDataStoreManager(string(port)),
 	}
 }
 
