@@ -2,6 +2,9 @@ package store
 
 import (
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"solune/filestore"
 )
 
@@ -11,10 +14,33 @@ type DataStoreManager struct {
 }
 
 func NewDataStoreManager(port string) *DataStoreManager {
-	return &DataStoreManager{
+	manager := &DataStoreManager{
 		stores: make(map[string]*KeyValueStore),
 		port:   port,
 	}
+
+	dbPath := filepath.Join("db", port)
+
+	files, err := os.ReadDir(dbPath)
+	if err != nil {
+		return manager
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		name := file.Name()
+		if !strings.HasSuffix(name, ".solstr") {
+			continue
+		}
+
+		storeName := strings.TrimSuffix(name, ".solstr")
+		log.Printf("Creating store on port:", storeName, port)
+		manager.AddStore(storeName)
+	}
+
+	return manager
 }
 
 func (manager *DataStoreManager) AddStore(name string) {
