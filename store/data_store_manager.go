@@ -36,7 +36,7 @@ func NewDataStoreManager(port string) *DataStoreManager {
 		}
 
 		storeName := strings.TrimSuffix(name, ".solstr")
-		log.Printf("Creating store on port:", storeName, port)
+
 		manager.AddStore(storeName)
 	}
 
