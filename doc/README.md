@@ -18,12 +18,12 @@
 ## 🚧 Future Developments
 
 ### 1. Scalability and Performance
-- [ ] Expand sharding module for distributed data storage.
+- [x] Expand sharding module for distributed data storage.
 - [ ] Expand sharding with data processing splitting.
 - [ ] Add replication and fault tolerance features.
 
 ### 2. Data Durability
-- [ ] Implement persistent storage to allow data recovery after downtime (currently in-memory only).
+- [x] Implement persistent storage to allow data recovery after downtime (currently in-memory only).
 - [ ] Explore write-ahead logging or snapshotting mechanisms.
 
 ### 3. Data Import & Export
