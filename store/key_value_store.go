@@ -32,7 +32,6 @@ func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) e
 	if err != nil {
 		return err
 	}
-
 	
 	if err := store.fileStore.Update(fmt.Sprintf("%v", key), base64.StdEncoding.EncodeToString(binValue)); err != nil {
 		return err
@@ -71,12 +70,23 @@ func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error)
 }
 
 func (store *KeyValueStore) Update(key interface{}, newValue map[string]interface{}) error {
+	var validKey string
+
+	switch v := key.(type) {
+	case string:
+		validKey = v
+	case uuid.UUID:
+		validKey = v.String()
+	default:
+		return nil, fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
+	}
+
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
-	_, exists := store.data[key]
+	_, exists := store.data[validKey]
 	if !exists {
-		return &KeyNotFoundError{Key: key}
+		return &KeyNotFoundError{Key: validKey}
 	}
 
 	binValue, err := data.MapToBinary(newValue)
@@ -84,29 +94,40 @@ func (store *KeyValueStore) Update(key interface{}, newValue map[string]interfac
 		return err
 	}
 
-	if err := store.fileStore.Update(fmt.Sprintf("%v", key), base64.StdEncoding.EncodeToString(binValue)); err != nil {
+	if err := store.fileStore.Update(fmt.Sprintf("%v", validKey), base64.StdEncoding.EncodeToString(binValue)); err != nil {
 		return err
 	}
 
-	store.data[key] = binValue
-	store.cache[key] = binValue
+	store.data[validKey] = binValue
+	store.cache[validKey] = binValue
 	return nil
 }
 
 func (store *KeyValueStore) Delete(key interface{}) error {
+	var validKey string
+
+	switch v := key.(type) {
+	case string:
+		validKey = v
+	case uuid.UUID:
+		validKey = v.String()
+	default:
+		return nil, fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
+	}
+
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
-	if _, exists := store.data[key]; !exists {
-		return &KeyNotFoundError{Key: key}
+	if _, exists := store.data[validKey]; !exists {
+		return &KeyNotFoundError{Key: validKey}
 	}
 
-	if err := store.fileStore.Delete(fmt.Sprintf("%v", key)); err != nil {
+	if err := store.fileStore.Delete(fmt.Sprintf("%v", validKey)); err != nil {
 		return err
 	}
 
-	delete(store.data, key)
-	delete(store.cache, key)
+	delete(store.data, validKey)
+	delete(store.cache, validKey)
 	return nil
 }
 
