@@ -78,7 +78,7 @@ func (store *KeyValueStore) Update(key interface{}, newValue map[string]interfac
 	case uuid.UUID:
 		validKey = v.String()
 	default:
-		return nil, fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
+		return fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
 	}
 
 	store.mutex.Lock()
@@ -112,7 +112,7 @@ func (store *KeyValueStore) Delete(key interface{}) error {
 	case uuid.UUID:
 		validKey = v.String()
 	default:
-		return nil, fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
+		return fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
 	}
 
 	store.mutex.Lock()
