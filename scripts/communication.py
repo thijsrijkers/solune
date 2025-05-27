@@ -9,15 +9,13 @@ command = ''
 
 try:
     client_socket.connect((server_ip, server_port))
-    
     message = command + "\n"
-    
     client_socket.sendall(message.encode())
 
     sock_file = client_socket.makefile('r')
-    response_line = sock_file.readline()
 
-    print("Response:", response_line.strip())
-    
+    for line in sock_file:
+        print(line.strip())
+
 finally:
     client_socket.close()

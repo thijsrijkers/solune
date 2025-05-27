@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"encoding/base64"
+	"github.com/google/uuid"
 	"solune/data"
     "solune/filestore"
 )
@@ -43,19 +44,30 @@ func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) e
 }
 
 func (store *KeyValueStore) Get(key interface{}) (map[string]interface{}, error) {
-	if binValue, found := store.cache[key]; found {
+	var validKey string
+
+	switch v := key.(type) {
+	case string:
+		validKey = v
+	case uuid.UUID:
+		validKey = v.String()
+	default:
+		return nil, fmt.Errorf("invalid key type: expected string or uuid.UUID, got %T", key)
+	}
+
+	if binValue, found := store.cache[validKey]; found {
 		return data.BinaryToMap(binValue)
 	}
 
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
-	if binValue, exists := store.data[key]; exists {
-		store.cache[key] = binValue
+	if binValue, exists := store.data[validKey]; exists {
+		store.cache[validKey] = binValue 
 		return data.BinaryToMap(binValue)
 	}
 
-	return nil, &KeyNotFoundError{Key: key}
+	return nil, &KeyNotFoundError{Key: validKey}
 }
 
 func (store *KeyValueStore) Update(key interface{}, newValue map[string]interface{}) error {
