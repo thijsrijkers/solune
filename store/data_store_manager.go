@@ -83,7 +83,27 @@ func (manager *DataStoreManager) GetStore(name string) (*KeyValueStore, bool) {
 
 func (manager *DataStoreManager) RemoveStore(name string) bool {
 	if _, exists := manager.stores[name]; exists {
+		store, exists := manager.stores[name]
+		if !exists {
+			return false
+		}
+
+		if store.fileStore != nil {
+			if err := store.fileStore.Close(); err != nil {
+				log.Printf("Failed to close FileStore for %s: %v", name, err)
+			}
+		}
+
 		delete(manager.stores, name)
+
+		dbPath := filepath.Join("db", manager.port)
+		fileName := name + ".solstr"
+		fullPath := filepath.Join(dbPath, fileName)
+
+		if err := os.Remove(fullPath); err != nil {
+			log.Printf("Failed to remove file %s: %v", fullPath, err)
+		}
+
 		return true
 	}
 	return false

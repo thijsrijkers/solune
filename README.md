@@ -48,7 +48,7 @@ python .\communication.py
 ### 3. Command Format
 The command follows this format:
 ```bash
- instruction:=<action>|store=<store_name>|key=<key>|data=<data>
+ instruction=<action>|store=<store_name>|key=<key>|data=<data>
 ```
 
 Where:
