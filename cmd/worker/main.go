@@ -5,7 +5,7 @@ import (
     "os"
     "strconv"
 
-    "solune/internal/workerlogic"
+    "solune/internal"
 )
 
 func main() {
