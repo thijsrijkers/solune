@@ -5,8 +5,8 @@ import (
 	"solune/sharding"
 )
 
-func Run() {
-	shardManager := shard.NewShardManager("db")
+func Run(port string) {
+	shardManager := shard.NewShardManager(port)
 
 	if shardManager.HasActiveShards() {
 		fmt.Println("Shards detected. Starting them...")

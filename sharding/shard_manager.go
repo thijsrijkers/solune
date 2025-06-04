@@ -1,8 +1,6 @@
 package shard
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"strconv"
 )
@@ -12,29 +10,21 @@ type ShardManager struct {
 	active bool
 }
 
-// NewShardManager scans the db directory and initializes shards based on folder names
-func NewShardManager(baseDir string) *ShardManager {
+// NewShardManager initializes the ShardManager with a single shard based on the given port
+func NewShardManager(port string) *ShardManager {
 	manager := &ShardManager{}
 
-	entries, err := ioutil.ReadDir(baseDir)
-	if err != nil {
-		log.Fatalf("Failed to read base directory %s: %v", baseDir, err)
+	// Validate port
+	if _, err := strconv.Atoi(port); err != nil {
+		log.Fatalf("Invalid port number: %s", port)
 	}
 
-	for _, entry := range entries {
-		if entry.IsDir() {
-			port := entry.Name()
-			if _, err := strconv.Atoi(port); err != nil {
-				log.Printf("Skipping invalid port folder: %s", port)
-				continue
-			}
+	// Create and add shard
+	shard := NewShard(port)
+	manager.shards = append(manager.shards, shard)
 
-			shard := NewShard(port)
-			manager.shards = append(manager.shards, shard)
-		}
-	}
-
-	manager.active = len(manager.shards) > 0
+	// Mark as active
+	manager.active = true
 	return manager
 }
 
@@ -43,7 +33,6 @@ func (sm *ShardManager) StartAll() {
 	for _, shard := range sm.shards {
 		go shard.Start()
 	}
-	fmt.Printf("Started %d shard(s).\n", len(sm.shards))
 }
 
 // HasActiveShards returns true if any shard is active (i.e., loaded from folder)
