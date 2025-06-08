@@ -39,7 +39,7 @@ From the project root directory (where `docker-compose.yml` is located), run:
 ```bash
 docker-compose up --build
 ```
-This will build the Docker image and start the Solune server inside a container, exposing it on port 9000. You can now interact with the database through the running container. We created a python script where you can define the command that you want to execute:
+This will build the Docker image and start the Solune server inside a container, exposing it on port 8743. You can now interact with the database through the running container. We created a python script where you can define the command that you want to execute:
 
 ```bash
 python .\communication.py 
