@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
-	"os/exec"
+	"solune/tcprelay"
 )
 
 func killPort(p string) error {
-	// Step 1: Find the PID using lsof
 	findCmd := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%s", p))
 	output, err := findCmd.Output()
 	if err != nil || len(output) == 0 {
@@ -18,7 +18,6 @@ func killPort(p string) error {
 		return nil
 	}
 
-	// Step 2: Kill the process
 	pid := strings.TrimSpace(string(output))
 	log.Printf("Killing process using TCP port %s (PID: %s)...", p, pid)
 	killCmd := exec.Command("kill", "-9", pid)
@@ -28,82 +27,72 @@ func killPort(p string) error {
 }
 
 func main() {
-	// Step 1: Run the build command
+	log.Println("Building worker binary...")
 	buildCmd := exec.Command("go", "build", "-o", "worker", "cmd/worker/main.go")
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
-
-	log.Println("Building worker binary...")
-	err := buildCmd.Run()
-	if err != nil {
+	if err := buildCmd.Run(); err != nil {
 		log.Fatalf("Failed to build worker: %v", err)
 	}
 	log.Println("Worker binary built successfully.")
 
-	// Step 2: Read db directory
 	dbDir := "db"
 	entries, err := os.ReadDir(dbDir)
 	if err != nil {
 		log.Fatalf("Failed to read db directory: %v", err)
 	}
 
-	// Step 3: Start a worker for each port, or one if none found
-	hasAny := false
-
+	var allPorts []string
 	for _, entry := range entries {
 		if entry.IsDir() {
-			hasAny = true
-			port := entry.Name()
-
-			go func(p string) {
-				_ = killPort(p)
-				time.Sleep(500 * time.Millisecond)
-				cmd := exec.Command("./worker", p)
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-
-				log.Printf("Starting worker for port %s...", p)
-				err := cmd.Start()
-				if err != nil {
-					log.Printf("Failed to start worker for port %s: %v", p, err)
-					return
-				}
-
-				log.Printf("Worker for port %s started with PID %d", p, cmd.Process.Pid)
-
-				err = cmd.Wait()
-				if err != nil {
-					log.Printf("Worker for port %s exited with error: %v", p, err)
-				} else {
-					log.Printf("Worker for port %s exited successfully", p)
-				}
-			}(port)
+			allPorts = append(allPorts, entry.Name())
 		}
 	}
+	if len(allPorts) == 0 {
+		allPorts = append(allPorts, "9000")
+	}
 
-	if !hasAny {
-		go func() {
-			cmd := exec.Command("./worker", "9000")
+	// Step 1: Launch all workers
+	for _, port := range allPorts {
+		go func(p string) {
+			_ = killPort(p)
+			time.Sleep(500 * time.Millisecond)
+
+			cmd := exec.Command("./worker", p)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
-			log.Printf("No existing shards found, creating new one....")
+			log.Printf("Starting worker for port %s...", p)
 			err := cmd.Start()
 			if err != nil {
-				log.Printf("Failed to start worker with no port: %v", err)
+				log.Printf("Failed to start worker for port %s: %v", p, err)
 				return
 			}
 
-			log.Printf("Worker with newly create shard started with PID %d", cmd.Process.Pid)
-
+			log.Printf("Worker for port %s started with PID %d", p, cmd.Process.Pid)
 			err = cmd.Wait()
 			if err != nil {
-				log.Printf("Worker with no port exited with error: %v", err)
+				log.Printf("Worker for port %s exited with error: %v", p, err)
 			} else {
-				log.Printf("Worker with no port exited successfully")
+				log.Printf("Worker for port %s exited successfully", p)
 			}
-		}()
+		}(port)
 	}
 
-	select {}
+	// Step 2: Launch this node's TCP relay on 8743
+	relayPort := "8743"
+
+	var peers []string
+	for _, p := range allPorts {
+		if p != relayPort {
+			peers = append(peers, p)
+		}
+	}
+
+	node := tcprelay.NewRelayNode(relayPort, peers)
+	err = node.Start()
+	if err != nil {
+		log.Fatalf("Failed to start TCP relay: %v", err)
+	}
 }
+
