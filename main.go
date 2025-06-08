@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 	"os/exec"
 )
 
@@ -17,7 +19,7 @@ func killPort(p string) error {
 	}
 
 	// Step 2: Kill the process
-	pid := string(output)
+	pid := strings.TrimSpace(string(output))
 	log.Printf("Killing process using TCP port %s (PID: %s)...", p, pid)
 	killCmd := exec.Command("kill", "-9", pid)
 	killCmd.Stdout = os.Stdout
@@ -54,7 +56,8 @@ func main() {
 			port := entry.Name()
 
 			go func(p string) {
-				_ = killPort(p) // Kill any process using this port
+				_ = killPort(p)
+				time.Sleep(500 * time.Millisecond)
 				cmd := exec.Command("./worker", p)
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
