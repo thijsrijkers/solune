@@ -101,9 +101,9 @@ Where:
 The `TCPRelay` acts as a dispatcher between the client and all database shards. It forwards incoming commands to each shard, waits for their responses, and returns a unified result back to the client.
 
 ```bash
-+-----------+    Command    +-------------+    result    +-----------+
-|   Client  | ------------> |  TCPRelay   | -----------> |   Client  |
-+-----------+               +-------------+              +-----------+
++-----------+    Command    +-------------+    result     +-----------+
+|   Client  | ------------> |  TCPRelay   | ------------> |   Client  |
++-----------+               +-------------+               +-----------+
                                |   |   |
                                v   v   v
                      +-------+ +-------+ +-------+
