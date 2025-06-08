@@ -95,7 +95,24 @@ Where:
    ```
 - This command retrieves all data from the user_data store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
-### 4. Unit Testing
+
+### 4. TCPRelay Overview
+
+The `TCPRelay` acts as a dispatcher between the client and all database shards. It forwards incoming commands to each shard, waits for their responses, and returns a unified result back to the client.
+
+```bash
++-----------+      Command       +-------------+   Aggregated result    +-----------+
+|   Client  | -----------------> |  TCPRelay   | ---------------------> |   Client  |
++-----------+                    +-------------+                        +-----------+
+                                     |   |   |
+                                     v   v   v
+                          +--------+ +--------+ +--------+
+                          | Shard1 | | Shard2 | | Shard3 |
+                          +--------+ +--------+ +--------+
+
+```
+
+### 5. Unit Testing
 To run the unit tests, navigate to the source folder and run:
 
 ```bash
