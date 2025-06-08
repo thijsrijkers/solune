@@ -106,9 +106,9 @@ The `TCPRelay` acts as a dispatcher between the client and all database shards. 
 +-----------+               +-------------+              +-----------+
                                |   |   |
                                v   v   v
-                    +--------+ +-------+ +--------+
-                    | Shard  | | Shard | |  Shard |
-                    +--------+ +-------+ +--------+
+                     +-------+ +-------+ +-------+
+                     | Shard | | Shard | | Shard |
+                     +-------+ +-------+ +-------+
 
 ```
 
