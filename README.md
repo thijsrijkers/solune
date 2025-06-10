@@ -96,7 +96,9 @@ Where:
 - This command retrieves all data from the user_data store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
 
-### 4. TCPRelay Overview
+##### Internal processes:
+
+### 1. TCPRelay Overview
 
 The `TCPRelay` acts as a dispatcher between the client and all database shards. It forwards incoming commands to each shard, waits for their responses, and returns a unified result back to the client.
 
@@ -109,10 +111,32 @@ The `TCPRelay` acts as a dispatcher between the client and all database shards. 
                      +-------+ +-------+ +-------+
                      | Shard | | Shard | | Shard |
                      +-------+ +-------+ +-------+
-
 ```
 
-### 5. Unit Testing
+### 2. Supervisor Overview
+
+The **Supervisor** in this project is a lightweight monitoring process designed to keep the worker shard processes running reliably on their assigned TCP ports.
+
+### Implementation Details
+
+- When the main program launches a worker process on a specific port, it also spawns a supervisor process, passing two arguments:
+  1. The worker's TCP port (e.g., `"9000"`)
+  2. The worker’s process ID (PID) assigned by the OS.
+
+- The supervisor continuously checks if the worker process with the given PID is still alive by sending a harmless signal (`Signal 0`).
+
+- If the worker process crashes or is no longer running, the supervisor:
+  - Cleans up by killing any process that might still be using the assigned TCP port.
+  - Spawns a new worker process on the same port.
+  - Monitors the newly spawned worker, repeating the cycle.
+
+- This watch-and-restart loop ensures that each shard remains operational without manual intervention.
+- Supervisors and workers run as independent OS processes.
+- Supervisors do not block the main program, allowing concurrent management of multiple shards.
+
+##### Testing:
+
+### 1. Unit Testing
 To run the unit tests, navigate to the source folder and run:
 
 ```bash
