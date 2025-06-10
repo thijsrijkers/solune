@@ -120,15 +120,21 @@ The **Supervisor** in this project is a lightweight monitoring process designed 
 ##### Implementation Details
 
 - When the main program launches a worker process on a specific port, it also spawns a supervisor process, passing two arguments:
+
+```bash
   1. The worker's TCP port (e.g., `"9000"`)
   2. The worker’s process ID (PID) assigned by the OS.
+```
 
 - The supervisor continuously checks if the worker process with the given PID is still alive by sending a harmless signal (`Signal 0`).
 
 - If the worker process crashes or is no longer running, the supervisor:
+
+```bash
   - Cleans up by killing any process that might still be using the assigned TCP port.
   - Spawns a new worker process on the same port.
   - Monitors the newly spawned worker, repeating the cycle.
+```
 
 - This watch-and-restart loop ensures that each shard remains operational without manual intervention.
 - Supervisors and workers run as independent OS processes.
