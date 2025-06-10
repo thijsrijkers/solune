@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"solune/processing"
 )
 
 func Run(port string, pid string) {
@@ -23,7 +24,7 @@ func Run(port string, pid string) {
 		if !isProcessRunning(pidInt) {
 			log.Printf("Process %d stopped. Restarting shard on port %s...", pidInt, port)
 
-			err := killPort(port)
+			err := processing.KillPort(port)
 			if err != nil {
 				log.Printf("Error killing port %s: %v", port, err)
 			}
@@ -31,7 +32,6 @@ func Run(port string, pid string) {
 			proc, err := startShard(port)
 			if err != nil {
 				log.Printf("Failed to start new shard on port %s: %v", port, err)
-				// Retry after delay
 				time.Sleep(5 * time.Second)
 				continue
 			}

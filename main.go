@@ -5,26 +5,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 	"solune/tcprelay"
+	"solune/processing"
 )
-
-func killPort(p string) error {
-	findCmd := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%s", p))
-	output, err := findCmd.Output()
-	if err != nil || len(output) == 0 {
-		log.Printf("No process found using TCP port %s", p)
-		return nil
-	}
-
-	pid := strings.TrimSpace(string(output))
-	log.Printf("Killing process using TCP port %s (PID: %s)...", p, pid)
-	killCmd := exec.Command("kill", "-9", pid)
-	killCmd.Stdout = os.Stdout
-	killCmd.Stderr = os.Stderr
-	return killCmd.Run()
-}
 
 func main() {
 	log.Println("Building worker binary...")
@@ -64,7 +48,7 @@ func main() {
 	// Step 1: Launch all workers + supervisors
 	for _, port := range allPorts {
 		go func(p string) {
-			_ = killPort(p)
+			_ = processing.KillPort(p)
 			time.Sleep(500 * time.Millisecond)
 
 			// Start worker
