@@ -4,8 +4,7 @@ import (
     "fmt"
     "os"
     "strconv"
-
-    "solune/internal"
+    "solune/internal/workerlogic"
 )
 
 func main() {

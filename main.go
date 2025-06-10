@@ -36,6 +36,15 @@ func main() {
 	}
 	log.Println("Worker binary built successfully.")
 
+	log.Println("Building supervisor binary...")
+	buildCmd = exec.Command("go", "build", "-o", "supervisor", "cmd/supervisor/main.go")
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Stderr = os.Stderr
+	if err := buildCmd.Run(); err != nil {
+		log.Fatalf("Failed to build supervisor: %v", err)
+	}
+	log.Println("Supervisor binary built successfully.")
+
 	dbDir := "db"
 	entries, err := os.ReadDir(dbDir)
 	if err != nil {
@@ -52,12 +61,13 @@ func main() {
 		allPorts = append(allPorts, "9000")
 	}
 
-	// Step 1: Launch all workers
+	// Step 1: Launch all workers + supervisors
 	for _, port := range allPorts {
 		go func(p string) {
 			_ = killPort(p)
 			time.Sleep(500 * time.Millisecond)
 
+			// Start worker
 			cmd := exec.Command("./worker", p)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
@@ -69,7 +79,22 @@ func main() {
 				return
 			}
 
-			log.Printf("Worker for port %s started with PID %d", p, cmd.Process.Pid)
+			workerPid := cmd.Process.Pid
+			log.Printf("Worker for port %s started with PID %d", p, workerPid)
+
+			// Start supervisor
+			supervisorCmd := exec.Command("./supervisor", p, fmt.Sprintf("%d", workerPid))
+			supervisorCmd.Stdout = os.Stdout
+			supervisorCmd.Stderr = os.Stderr
+
+			log.Printf("Starting supervisor for port %s with worker PID %d...", p, workerPid)
+			err = supervisorCmd.Start()
+			if err != nil {
+				log.Printf("Failed to start supervisor for port %s: %v", p, err)
+			} else {
+				log.Printf("Supervisor for port %s started with PID %d", p, supervisorCmd.Process.Pid)
+			}
+
 			err = cmd.Wait()
 			if err != nil {
 				log.Printf("Worker for port %s exited with error: %v", p, err)
