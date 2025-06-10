@@ -96,7 +96,7 @@ Where:
 - This command retrieves all data from the user_data store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
 
-##### Internal processes:
+## Internal processes:
 
 ### 1. TCPRelay Overview
 
@@ -134,7 +134,7 @@ The **Supervisor** in this project is a lightweight monitoring process designed 
 - Supervisors and workers run as independent OS processes.
 - Supervisors do not block the main program, allowing concurrent management of multiple shards.
 
-##### Testing:
+## Testing:
 
 ### 1. Unit Testing
 To run the unit tests, navigate to the source folder and run:
