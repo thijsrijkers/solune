@@ -131,10 +131,12 @@ The **Supervisor** in this project is a lightweight monitoring process designed 
 
 - If the worker process crashes or is no longer running, the supervisor:
 
-```bash
-  - Cleans up by killing any process that might still be using the assigned TCP port.
-  - Spawns a new worker process on the same port.
-  - Monitors the newly spawned worker, repeating the cycle.
+```mermaid
+flowchart TD
+  A[Worker Process crashes or stops] --> B[Kills any process using the TCP port]
+  B --> C[Spawns new Worker on the same port]
+  C --> D[Monitors new Worker]
+  D -->|If Worker crashes| A
 ```
 
 - This watch-and-restart loop ensures that each shard remains operational without manual intervention.
