@@ -113,6 +113,7 @@ The `TCPRelay` acts as a dispatcher between the client and all database shards. 
                      +-------+ +-------+ +-------+
 ```
 
+
 ### 2. Supervisor Overview
 
 The **Supervisor** in this project is a lightweight monitoring process designed to keep the worker shard processes running reliably on their assigned TCP ports.
@@ -122,8 +123,8 @@ The **Supervisor** in this project is a lightweight monitoring process designed 
 - When the main program launches a worker process on a specific port, it also spawns a supervisor process, passing two arguments:
 
 ```bash
-  1. The worker's TCP port (e.g., `"9000"`)
-  2. The worker’s process ID (PID) assigned by the OS.
+  - The worker's TCP port (e.g., `"9000"`)
+  - The worker’s process ID (PID) assigned by the OS.
 ```
 
 - The supervisor continuously checks if the worker process with the given PID is still alive by sending a harmless signal (`Signal 0`).
