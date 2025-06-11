@@ -141,6 +141,13 @@ flowchart TD
 - Supervisors and workers run as independent OS processes.
 - Supervisors do not block the main program, allowing concurrent management of multiple shards.
 
+### 3. Monitor Overview
+
+The **Monitor** process runs independently to continuously oversee the resource usage and health of all active worker processes. It periodically scans running workers, checking their CPU and memory consumption against predefined thresholds. If a worker exceeds these limits, the monitor logs warnings to help detect potential performance issues or memory leaks early.
+
+To ensure only one instance of the monitor runs at a time, the main program terminates any existing monitor processes before launching a new one. This avoids duplicate monitoring and conserves system resources. The monitor runs as a separate OS process and can be restarted independently, ensuring continuous and consistent oversight across all shards.
+
+
 ## Testing:
 
 ### 1. Unit Testing
