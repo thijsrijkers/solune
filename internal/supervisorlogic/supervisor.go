@@ -18,8 +18,6 @@ func Run(port string, pid string) {
 		log.Fatalf("Invalid PID provided: %v", err)
 	}
 
-	log.Printf("Starting supervisor for PID %d on port %s", pidInt, port)
-
 	for {
 		if !isProcessRunning(pidInt) {
 			log.Printf("Process %d stopped. Restarting shard on port %s...", pidInt, port)

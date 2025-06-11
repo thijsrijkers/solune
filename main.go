@@ -56,7 +56,8 @@ func main() {
 			supervisorCmd.Stdout = os.Stdout
 			supervisorCmd.Stderr = os.Stderr
 
-			log.Printf("Starting supervisor for port %s with worker PID %d...", p, workerPid)
+			log.Printf("Starting supervisor for PID %d on port %s", workerPid, p)
+
 			err = supervisorCmd.Start()
 			if err != nil {
 				log.Printf("Failed to start supervisor for port %s: %v", p, err)
