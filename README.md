@@ -122,10 +122,8 @@ The **Supervisor** in this project is a lightweight monitoring process designed 
 
 When the main program launches a worker process on a specific port, it also spawns a supervisor process, passing two arguments:
 
-```bash
   - The worker's TCP port (e.g., `"9000"`)
   - The worker’s process ID (PID) assigned by the OS.
-```
 
 The supervisor continuously checks if the worker process with the given PID is still alive by sending a harmless signal (`Signal 0`).
 
