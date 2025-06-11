@@ -1,7 +1,7 @@
 package shard
 
 import (
-	"fmt"
+	"log"
 	"solune/store"
 	"solune/tcp"
 )
@@ -19,7 +19,7 @@ func NewShard(port string) *Shard {
 }
 
 func (s *Shard) Start() {
-	fmt.Printf("Starting shard on port %s\n", s.Port)
+	log.Printf("Starting shard on port %s\n", s.Port)
 	tcp.StartServer(s.Port, s.manager)
 }
 

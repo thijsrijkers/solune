@@ -11,7 +11,7 @@ func BuildBinary() {
 	log.Println("Building binaries...")
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 
 	// Build worker binary
 	go func() {
@@ -37,6 +37,19 @@ func BuildBinary() {
 			log.Fatalf("Failed to build supervisor: %v", err)
 		}
 		log.Println("Supervisor binary built successfully.")
+	}()
+
+	// Build monitor binary
+	go func() {
+		defer wg.Done()
+		log.Println("Building monitor binary...")
+		cmd := exec.Command("go", "build", "-o", "monitor", "cmd/monitor/main.go")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Failed to build rebalancing: %v", err)
+		}
+		log.Println("Monitor binary built successfully.")
 	}()
 
 	// Build rebalancing binary

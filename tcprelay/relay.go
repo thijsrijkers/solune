@@ -2,9 +2,10 @@ package tcprelay
 
 import (
 	"bufio"
-	"fmt"
+	"log"
 	"net"
 	"strings"
+	"fmt"
 )
 
 type RelayNode struct {
@@ -26,12 +27,12 @@ func (r *RelayNode) Start() error {
 	}
 	defer listener.Close()
 
-	fmt.Printf("RelayNode listening on port %s\n", r.Port)
+	log.Printf("RelayNode listening on port %s\n", r.Port)
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Printf("Connection error: %v\n", err)
+			log.Printf("Connection error: %v\n", err)
 			continue
 		}
 		go r.handleConnection(conn)
@@ -40,9 +41,9 @@ func (r *RelayNode) Start() error {
 
 func (r *RelayNode) handleConnection(conn net.Conn) {
 	clientAddr := conn.RemoteAddr().String()
-	fmt.Printf("[Port %s] Client connected: %s\n", r.Port, clientAddr)
+	log.Printf("[Port %s] Client connected: %s\n", r.Port, clientAddr)
 	defer func() {
-		fmt.Printf("[Port %s] Client disconnected: %s\n", r.Port, clientAddr)
+		log.Printf("[Port %s] Client disconnected: %s\n", r.Port, clientAddr)
 		conn.Close()
 	}()
 
@@ -55,7 +56,7 @@ func (r *RelayNode) handleConnection(conn net.Conn) {
 		for _, response := range responses {
 			_, err := fmt.Fprintf(conn, "%s\n", response)
 			if err != nil {
-				fmt.Printf("Failed to send response to %s: %v\n", clientAddr, err)
+				log.Printf("Failed to send response to %s: %v\n", clientAddr, err)
 			}
 		}
 	}
@@ -67,13 +68,13 @@ func (r *RelayNode) relayMessage(msg string) []string {
 		p := port
 		conn, err := net.Dial("tcp", "localhost:"+p)
 		if err != nil {
-			fmt.Printf("Failed to connect to peer %s: %v\n", p, err)
+			log.Printf("Failed to connect to peer %s: %v\n", p, err)
 			continue
 		}
 
 		_, err = fmt.Fprintf(conn, "%s\n", msg)
 		if err != nil {
-			fmt.Printf("Failed to send to peer %s: %v\n", p, err)
+			log.Printf("Failed to send to peer %s: %v\n", p, err)
 			conn.Close()
 			continue
 		}
@@ -82,7 +83,7 @@ func (r *RelayNode) relayMessage(msg string) []string {
 		if err == nil {
 			responses = append(responses, fmt.Sprintf(strings.TrimSpace(reply)))
 		} else {
-			fmt.Printf("No response from peer %s: %v\n", p, err)
+			log.Printf("No response from peer %s: %v\n", p, err)
 		}
 		conn.Close()
 	}

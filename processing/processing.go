@@ -23,3 +23,19 @@ func KillPort(p string) error {
 	killCmd.Stderr = os.Stderr
 	return killCmd.Run()
 }
+
+func KillMonitorProcesses() {
+	out, err := exec.Command("pgrep", "-f", "monitor").Output()
+	if err != nil {
+		return
+	}
+
+	pids := strings.Fields(string(out))
+	for _, pid := range pids {
+		log.Printf("Killing existing monitor process with PID %s", pid)
+		err := exec.Command("kill", "-9", pid).Run()
+		if err != nil {
+			log.Printf("Failed to kill process %s: %v", pid, err)
+		}
+	}
+}

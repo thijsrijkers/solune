@@ -12,8 +12,11 @@ import (
 )
 
 func main() {
+	//Step 1: Setup binary, cleanup old monitor process and retrieve argument data
 	builder.BuildBinary();
-	
+
+	processing.KillMonitorProcesses();
+
 	dbDir := "db"
 	entries, err := os.ReadDir(dbDir)
 	if err != nil {
@@ -30,7 +33,7 @@ func main() {
 		allPorts = append(allPorts, "9000")
 	}
 
-	// Step 1: Launch all workers + supervisors
+	// Step 2: Launch all workers + supervisors
 	for _, port := range allPorts {
 		go func(p string) {
 			_ = processing.KillPort(p)
@@ -74,7 +77,17 @@ func main() {
 		}(port)
 	}
 
-	// Step 2: Launch this node's TCP relay on 8743
+	// Step 3: Launch monitor process
+	monitorCmd := exec.Command("./monitor")
+	monitorCmd.Stdout = os.Stdout
+	monitorCmd.Stderr = os.Stderr
+	monitorStartErr := monitorCmd.Start()
+	if monitorStartErr != nil {
+		log.Fatalf("Failed to start monitor: %v", monitorStartErr)
+	}
+	log.Printf("Started monitor with PID %d", monitorCmd.Process.Pid)
+
+	// Step 4: Launch this node's TCP relay on 8743
 	relayPort := "8743"
 
 	var peers []string
