@@ -6,8 +6,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"encoding/json"
 	"strconv"
 	"strings"
+	"net"
 	"sync"
 )
 
@@ -16,9 +18,59 @@ type ShardData struct {
 	Stores map[string][]string // storeName -> keys
 }
 
-// Placeholder for communicating with existing shards
-func communicateWithExistingShard(port int, store string, keys []string) {
+func communicateWithExistingShard(port int, store string, keys []string) []json.RawMessage {
+	address := fmt.Sprintf("127.0.0.1:%d", port)
+
+	conn, err := net.Dial("tcp", address)
+	if err != nil {
+		fmt.Printf("Failed to connect to shard at %s: %v\n", address, err)
+		return nil
+	}
+	defer conn.Close()
+
 	fmt.Printf("[existing-shard:%d] Store: %s, Keys: %v\n", port, store, keys)
+
+	reader := bufio.NewReader(conn)
+	writer := bufio.NewWriter(conn)
+
+	var results []json.RawMessage
+
+	for _, key := range keys {
+		command := key + "\n"
+
+		_, err := writer.WriteString(command)
+		if err != nil {
+			fmt.Printf("Failed to write key '%s': %v\n", key, err)
+			continue
+		}
+		writer.Flush()
+
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Printf("Failed to read response for key '%s': %v\n", key, err)
+			continue
+		}
+		line = strings.TrimSpace(line)
+
+		var maybeStatus map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &maybeStatus); err == nil {
+			if len(maybeStatus) == 1 {
+				if _, isStatus := maybeStatus["status"]; isStatus {
+					fmt.Printf("Key '%s' returned status-only response, skipping.\n", key)
+					continue
+				}
+			}
+		}
+
+		var raw json.RawMessage
+		if err := json.Unmarshal([]byte(line), &raw); err == nil {
+			results = append(results, raw)
+		} else {
+			fmt.Printf("Failed to parse JSON for key '%s': %v\n", key, err)
+		}
+	}
+
+	return results
 }
 
 // Placeholder for sending data to new shard
