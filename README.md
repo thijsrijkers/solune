@@ -21,6 +21,18 @@ One of the core design decisions behind Solune is the use of **in-memory data st
 
 While in-memory storage does have certain trade-offs (e.g., limited by system memory), this design choice aligns with Solune focus on speed and flexibility, especially for applications with high performance requirements.
 
+
+## Current Development Focus
+
+Solune is actively evolving to enhance performance, precision, and scalability. The current improvements under development include:
+
+- **Store Listing via `get` Instruction:** Extending the `get` instruction to return a list of all available store names when no specific store is provided.
+- **Targeted Shard Writes:** Adjusting the TCPRelay logic so that data creation operations (`set`) target a specific shard, while retrieval, update, and deletion operations continue to be broadcast across all shards.
+- **Shard Rebalancing Logic:** Implementing intelligent rebalancing of data between shards. While the supporting processes are in place, logic for redistribution and load balancing is currently being integrated.
+
+These enhancements aim to optimize resource usage, minimize unnecessary communication overhead, and improve the system's scalability and manageability.
+
+
 ## Getting Started
 
 To run the Solune server locally, follow these steps:
