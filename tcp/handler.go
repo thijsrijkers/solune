@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"bytes"
 	"net"
 	"strings"
 	"github.com/google/uuid"
@@ -62,26 +64,29 @@ func (s *Server) execute(action, storeName, key, data string) ([]map[string]inte
 	}
 }
 
-func (s *Server) handleGet(storeName string, key string) ([]map[string]interface{}, error) {
+func (s *Server) handleGet(storeName, key string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		return nil, fmt.Errorf("store '%s' not found", storeName)
 	}
 
-	if key != "" {
-		uuidKey, err := uuid.Parse(key)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing UUID: %s", err)
-		}
-
-		data, err := store.Get(uuidKey)
-		if err != nil {
-			return nil, err
-		}
-		return []map[string]interface{}{data}, nil
+	if key == "" {
+		return store.GetAllData(), nil
 	}
-	return store.GetAllData(), nil
+
+	uuidKey, err := uuid.Parse(key)
+	if err != nil {
+		return nil, fmt.Errorf("invalid UUID '%s': %w", key, err)
+	}
+
+	data, err := store.Get(uuidKey.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return []map[string]interface{}{data}, nil
 }
+
 
 func (s *Server) handleDelete(storeName string, key string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
@@ -163,21 +168,24 @@ func writeError(writer *bufio.Writer, err error) {
 }
 
 func writeResult(writer *bufio.Writer, result []map[string]interface{}) {
-    if len(result) > 0 {
-        for _, item := range result {
-            jsonData, err := json.Marshal(item)
-            if err != nil {
-                writer.WriteString(`{"error": "failed to serialize data to JSON"}` + "\n")
-                writer.Flush()
-                fmt.Println("Error marshaling JSON:", err)
-                return
-            }
-            dataToSend := string(jsonData) + "\n"
-            writer.WriteString(dataToSend)
-        }
-    } else {
-        dataToSend := `{"status": 404}` + "\n"
-        writer.WriteString(dataToSend)
-    }
-    writer.Flush()
+	if len(result) == 0 {
+		writer.WriteString(`{"status":404}` + "\n")
+		writer.Flush()
+		return
+	}
+
+	var buf bytes.Buffer
+	for _, item := range result {
+		jsonData, err := json.Marshal(item)
+		if err != nil {
+			log.Println("Error marshaling JSON:", err)
+			buf.WriteString(`{"error":"failed to serialize data to JSON"}` + "\n")
+			break
+		}
+		buf.Write(jsonData)
+		buf.WriteByte('\n')
+	}
+
+	writer.Write(buf.Bytes())
+	writer.Flush()
 }

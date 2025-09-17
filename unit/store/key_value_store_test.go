@@ -80,22 +80,6 @@ func TestKeyValueStore(t *testing.T) {
 		}
 	})
 
-	t.Run("ClearCache", func(t *testing.T) {
-		key3 := "user3"
-		value3 := map[string]interface{}{"name": "Charlie", "age": 35}
-		kv.Set(key3, value3)
-
-		kv.ClearCache()
-
-		got, err := kv.Get(key3)
-		if err != nil {
-			t.Errorf("expected no error after cache clear, got %v", err)
-		}
-		if !reflect.DeepEqual(normalize(got), normalize(value3)) {
-			t.Errorf("expected value %v, got %v", value3, got)
-		}
-	})
-
 	t.Run("Update", func(t *testing.T) {
 		newValue := map[string]interface{}{"name": "Alice Updated", "age": 31}
 		err := kv.Update(key1, newValue)

@@ -59,8 +59,7 @@ func NewDataStoreManager(port string) *DataStoreManager {
 				continue
 			}
 
-			store.cache[key] = valueBytes
-			store.data[key] = valueBytes
+			store.data.Store(key, valueBytes)
 		}
 	}
 
