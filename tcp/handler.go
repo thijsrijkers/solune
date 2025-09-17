@@ -175,15 +175,13 @@ func writeResult(writer *bufio.Writer, result []map[string]interface{}) {
 	}
 
 	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+
 	for _, item := range result {
-		jsonData, err := json.Marshal(item)
-		if err != nil {
-			log.Println("Error marshaling JSON:", err)
-			buf.WriteString(`{"error":"failed to serialize data to JSON"}` + "\n")
-			break
+		if err := encoder.Encode(item); err != nil {
+			log.Println("Error encoding item:", err)
+			buf.WriteString(`{"error":"failed to serialize"}` + "\n")
 		}
-		buf.Write(jsonData)
-		buf.WriteByte('\n')
 	}
 
 	writer.Write(buf.Bytes())
