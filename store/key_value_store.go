@@ -28,6 +28,16 @@ func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) e
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
+    var keyStr string
+    switch k := key.(type) {
+    case string:
+        keyStr = k
+    case fmt.Stringer:
+        keyStr = k.String()
+    }
+
+    value["key"] = keyStr
+
 	binValue, err := data.MapToBinary(value)
 	if err != nil {
 		return err
@@ -131,22 +141,22 @@ func (store *KeyValueStore) Delete(key interface{}) error {
 	return nil
 }
 
-
 func (store *KeyValueStore) GetAllData() []map[string]interface{} {
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
-	var result []map[string]interface{}
+	result := make([]map[string]interface{}, 0, len(store.data))
 
-	for key, binValue := range store.data {
-		if m, err := data.BinaryToMap(binValue); err == nil {
-			m["key"] = key
-			result = append(result, m)
+	for _, binValue := range store.data {
+		m, err := data.BinaryToMap(binValue)
+		if err != nil {
+			continue
 		}
+		result = append(result, m)
 	}
+
 	return result
 }
-
 
 func (store *KeyValueStore) ClearCache() {
 	store.mutex.Lock()
