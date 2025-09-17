@@ -43,12 +43,12 @@ func (store *KeyValueStore) Set(key interface{}, value map[string]interface{}) e
 		return err
 	}
 	
-	if err := store.fileStore.Update(fmt.Sprintf("%v", key), base64.StdEncoding.EncodeToString(binValue)); err != nil {
+	if err := store.fileStore.Update(fmt.Sprintf("%v", keyStr), base64.StdEncoding.EncodeToString(binValue)); err != nil {
 		return err
 	}
 
-	store.cache[key] = binValue
-	store.data[key] = binValue
+	store.cache[keyStr] = binValue
+	store.data[keyStr] = binValue
 	return nil
 }
 
