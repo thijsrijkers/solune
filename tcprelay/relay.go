@@ -1,11 +1,10 @@
 package tcprelay
 
 import (
-	"bufio"
+	"io"
 	"log"
 	"net"
-	"strings"
-	"fmt"
+	"time"
 )
 
 type RelayNode struct {
@@ -23,7 +22,7 @@ func NewRelayNode(port string, peerPorts []string) *RelayNode {
 func (r *RelayNode) Start() error {
 	listener, err := net.Listen("tcp", ":"+r.Port)
 	if err != nil {
-		return fmt.Errorf("failed to start server on port %s: %w", r.Port, err)
+		return err
 	}
 	defer listener.Close()
 
@@ -32,61 +31,64 @@ func (r *RelayNode) Start() error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Connection error: %v\n", err)
+			log.Printf("Failed to accept connection: %v\n", err)
 			continue
 		}
 		go r.handleConnection(conn)
 	}
 }
 
-func (r *RelayNode) handleConnection(conn net.Conn) {
-	clientAddr := conn.RemoteAddr().String()
-	log.Printf("[Port %s] Client connected: %s\n", r.Port, clientAddr)
-	defer func() {
-		log.Printf("[Port %s] Client disconnected: %s\n", r.Port, clientAddr)
-		conn.Close()
+func (r *RelayNode) handleConnection(clientConn net.Conn) {
+	defer clientConn.Close()
+	clientAddr := clientConn.RemoteAddr().String()
+	log.Printf("[OPEN] Client connected on port %s: %s\n", r.Port, clientAddr)
+
+	if tcpConn, ok := clientConn.(*net.TCPConn); ok {
+		tcpConn.SetNoDelay(true)
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(30 * time.Second)
+	}
+
+	if len(r.PeerPorts) == 0 {
+		log.Printf("[ERROR] No peer ports available for port %s\n", r.Port)
+		return
+	}
+	peerPort := r.PeerPorts[0]
+
+	peerConn, err := net.Dial("tcp", "localhost:"+peerPort)
+	if err != nil {
+		log.Printf("[ERROR] Failed to connect to peer %s: %v\n", peerPort, err)
+		return
+	}
+	defer peerConn.Close()
+
+	if tcpPeerConn, ok := peerConn.(*net.TCPConn); ok {
+		tcpPeerConn.SetNoDelay(true)
+		tcpPeerConn.SetKeepAlive(true)
+		tcpPeerConn.SetKeepAlivePeriod(30 * time.Second)
+	}
+
+	bufSize := 64 * 1024
+	done := make(chan struct{}, 2)
+
+	// Client -> Peer
+	go func() {
+		_, err := io.CopyBuffer(peerConn, clientConn, make([]byte, bufSize))
+		if err != nil {
+			log.Printf("[ERROR] Copy client -> peer failed: %v\n", err)
+		}
+		done <- struct{}{}
 	}()
 
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		msg := scanner.Text()
-
-		responses := r.relayMessage(msg)
-
-		for _, response := range responses {
-			_, err := fmt.Fprintf(conn, "%s\n", response)
-			if err != nil {
-				log.Printf("Failed to send response to %s: %v\n", clientAddr, err)
-			}
-		}
-	}
-}
-
-func (r *RelayNode) relayMessage(msg string) []string {
-	var responses []string
-	for _, port := range r.PeerPorts {
-		p := port
-		conn, err := net.Dial("tcp", "localhost:"+p)
+	// Peer -> Client
+	go func() {
+		_, err := io.CopyBuffer(clientConn, peerConn, make([]byte, bufSize))
 		if err != nil {
-			log.Printf("Failed to connect to peer %s: %v\n", p, err)
-			continue
+			log.Printf("[ERROR] Copy peer -> client failed: %v\n", err)
 		}
+		done <- struct{}{}
+	}()
 
-		_, err = fmt.Fprintf(conn, "%s\n", msg)
-		if err != nil {
-			log.Printf("Failed to send to peer %s: %v\n", p, err)
-			conn.Close()
-			continue
-		}
-
-		reply, err := bufio.NewReader(conn).ReadString('\n')
-		if err == nil {
-			responses = append(responses, fmt.Sprintf(strings.TrimSpace(reply)))
-		} else {
-			log.Printf("No response from peer %s: %v\n", p, err)
-		}
-		conn.Close()
-	}
-	return responses
+	<-done
+	log.Printf("[CLOSE] Client disconnected on port %s: %s\n", r.Port, clientAddr)
 }
-

@@ -15,35 +15,39 @@ const (
 )
 
 func main() {
-	latencies := make([]float64, numRequests)
-	
-	startBenchmark := time.Now()
-	
+	var latencies []float64
+
 	conn, err := net.Dial("tcp", serverIP+":"+serverPort)
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
-	
+
 	reader := bufio.NewReader(conn)
-	
-    for i := 0; i < numRequests; i++ {
-        start := time.Now()
 
-        _, err := fmt.Fprintf(conn, "%s\n", command)
-        if err != nil {
-            fmt.Println("Send error:", err)
-            continue
-        }
+	startBenchmark := time.Now()
+	for i := 0; i < numRequests; i++ {
+		start := time.Now()
 
-        _, err = reader.ReadString('\n')
-        if err != nil {
-            fmt.Println("Read error:", err)
-            continue
-        }
+		_, err := fmt.Fprintf(conn, "%s\n", command)
+		if err != nil {
+			fmt.Println("Send error:", err)
+			break
+		}
 
-        latencies[i] = time.Since(start).Seconds()
-    }
+		_, err = reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Read error:", err)
+			break
+		}
+
+		latencies = append(latencies, time.Since(start).Seconds())
+	}
+
+	if len(latencies) == 0 {
+		fmt.Println("No successful requests, exiting benchmark.")
+		return
+	}
 
 	total := 0.0
 	maxLatency := 0.0
@@ -59,10 +63,10 @@ func main() {
 	}
 
 	fmt.Println("\n=== Benchmark Results ===")
-	fmt.Printf("Total requests: %d\n", numRequests)
+	fmt.Printf("Total successful requests: %d\n", len(latencies))
 	fmt.Printf("Average latency: %.6f sec\n", total/float64(len(latencies)))
 	fmt.Printf("Max latency: %.6f sec\n", maxLatency)
 	fmt.Printf("Min latency: %.6f sec\n", minLatency)
-	fmt.Printf("Throughput: %.2f requests/sec\n", float64(numRequests)/total)
+	fmt.Printf("Throughput: %.2f requests/sec\n", float64(len(latencies))/total)
 	fmt.Printf("Total benchmark time: %.6f sec\n", time.Since(startBenchmark).Seconds())
 }
