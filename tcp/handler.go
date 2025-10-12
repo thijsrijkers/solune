@@ -2,14 +2,14 @@ package tcp
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"bytes"
 	"net"
+	"strconv"
 	"strings"
-	"github.com/google/uuid"
 	"solune/store"
 )
 
@@ -23,7 +23,7 @@ func NewServer(manager *store.DataStoreManager) *Server {
 
 func (s *Server) HandleClient(conn net.Conn) {
 	defer conn.Close()
-	
+
 	writer := bufio.NewWriter(conn)
 	reader := bufio.NewReader(conn)
 
@@ -35,18 +35,22 @@ func (s *Server) HandleClient(conn net.Conn) {
 		}
 
 		input = strings.TrimSpace(input)
-		b, err := ParseCommand(input)
-		if err != nil {
-			writeError(writer, err)
-			return
+		if input == "" {
+			continue
 		}
 
-		result, err := s.execute(b.Instruction, b.Store, b.Key, b.Data)
+		cmd, err := ParseCommand(input)
 		if err != nil {
 			writeError(writer, err)
-			return
+			continue
 		}
-		
+
+		result, err := s.execute(cmd.Instruction, cmd.Store, cmd.Key, cmd.Data)
+		if err != nil {
+			writeError(writer, err)
+			continue
+		}
+
 		writeResult(writer, result)
 	}
 }
@@ -71,22 +75,31 @@ func (s *Server) handleGet(storeName, key string) ([]map[string]interface{}, err
 	}
 
 	if key == "" {
-		return store.GetAllData(), nil
+		allData := store.GetAllData()
+		result := make([]map[string]interface{}, 0, len(allData))
+		for k, v := range allData {
+			result = append(result, map[string]interface{}{
+				"key":   k,
+				"value": v,
+			})
+		}
+		return result, nil
 	}
 
-	uuidKey, err := uuid.Parse(key)
+	keyInt, err := strconv.Atoi(key)
 	if err != nil {
-		return nil, fmt.Errorf("invalid UUID '%s': %w", key, err)
+		return nil, fmt.Errorf("invalid integer key '%s': %v", key, err)
 	}
 
-	data, err := store.Get(uuidKey.String())
+	value, err := store.Get(keyInt)
 	if err != nil {
 		return nil, err
 	}
 
-	return []map[string]interface{}{data}, nil
+	return []map[string]interface{}{
+		{"key": keyInt, "value": value},
+	}, nil
 }
-
 
 func (s *Server) handleDelete(storeName string, key string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
@@ -95,73 +108,62 @@ func (s *Server) handleDelete(storeName string, key string) ([]map[string]interf
 	}
 
 	if key != "" {
-		uuidKey, err := uuid.Parse(key)
+		keyInt, err := strconv.Atoi(key)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing UUID: %s", err)
+			return nil, fmt.Errorf("invalid integer key '%s': %v", key, err)
 		}
 
-		err = store.Delete(uuidKey)
+		err = store.Delete(keyInt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to delete data: %s", err)
+			return nil, fmt.Errorf("failed to delete key %d: %v", keyInt, err)
 		}
 
 		return []map[string]interface{}{{"status": 200}}, nil
 	}
 
-	removed := s.manager.RemoveStore(storeName)
-	if removed {
+	if s.manager.RemoveStore(storeName) {
 		return []map[string]interface{}{{"status": 200}}, nil
 	}
-
 	return nil, fmt.Errorf("failed to remove store '%s'", storeName)
 }
-
-
 
 func (s *Server) handleSet(storeName string, key string, data string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		s.manager.AddStore(storeName)
 		store, _ = s.manager.GetStore(storeName)
-		return []map[string]interface{}{{"status": 200}}, nil
-	}
-
-	var parsedData map[string]interface{}
-	if data != "" {
-		err := json.Unmarshal([]byte(data), &parsedData)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse data: %s", err)
-		}
 	}
 
 	if key != "" {
-		err := store.Update(key, parsedData)
+		keyInt, err := strconv.Atoi(key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to update data: %s", err)
+			return nil, fmt.Errorf("invalid integer key '%s': %v", key, err)
+		}
+
+		err = store.Update(keyInt, data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update key %d: %v", keyInt, err)
 		}
 	} else {
-		newUUID := uuid.New()
-		err := store.Set(newUUID, parsedData)
+		all := store.GetAllData()
+		newKey := len(all) + 1
+		err := store.Set(newKey, data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to set data: %s", err)
+			return nil, fmt.Errorf("failed to set data: %v", err)
 		}
 	}
 
 	return []map[string]interface{}{{"status": 200}}, nil
 }
 
-
 func handleReadError(err error) {
-	if err == io.EOF {
-		return
+	if err != io.EOF {
+		log.Println("Read error:", err)
 	}
-	fmt.Println("Read error:", err)
 }
 
 func writeError(writer *bufio.Writer, err error) {
-	resp := map[string]interface{}{
-		"error": err.Error(),
-	}
+	resp := map[string]interface{}{"error": err.Error()}
 	jsonData, _ := json.Marshal(resp)
 	writer.WriteString(string(jsonData) + "\n")
 	writer.Flush()
@@ -175,10 +177,9 @@ func writeResult(writer *bufio.Writer, result []map[string]interface{}) {
 	}
 
 	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-
+	enc := json.NewEncoder(&buf)
 	for _, item := range result {
-		if err := encoder.Encode(item); err != nil {
+		if err := enc.Encode(item); err != nil {
 			log.Println("Error encoding item:", err)
 			buf.WriteString(`{"error":"failed to serialize"}` + "\n")
 		}

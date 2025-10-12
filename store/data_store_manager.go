@@ -1,10 +1,11 @@
 package store
 
 import (
+	"encoding/base64"
 	"log"
 	"os"
 	"path/filepath"
-	"encoding/base64"
+	"strconv"
 	"strings"
 	"solune/filestore"
 )
@@ -33,10 +34,13 @@ func NewDataStoreManager(port string) *DataStoreManager {
 
 		storeName := strings.TrimSuffix(file.Name(), ".solstr")
 		manager.AddStore(storeName)
+		store, exists := manager.stores[storeName]
+		if !exists || store == nil {
+			log.Printf("Failed to initialize store: %s", storeName)
+			continue
+		}
 
-		store := manager.stores[storeName]
 		filePath := filepath.Join(dbPath, file.Name())
-
 		content, err := os.ReadFile(filePath)
 		if err != nil {
 			log.Printf("Failed to read file %s: %v\n", filePath, err)
@@ -45,21 +49,30 @@ func NewDataStoreManager(port string) *DataStoreManager {
 
 		lines := strings.Split(string(content), "\n")
 		for _, line := range lines {
-			if strings.TrimSpace(line) == "" || !strings.Contains(line, ",") {
+			line = strings.TrimSpace(line)
+			if line == "" || !strings.Contains(line, ",") {
 				continue
 			}
 
 			parts := strings.SplitN(line, ",", 2)
-			key := strings.TrimSpace(parts[0])
+			keyStr := strings.TrimSpace(parts[0])
 			encodedValue := strings.TrimSpace(parts[1])
 
 			valueBytes, err := base64.StdEncoding.DecodeString(encodedValue)
 			if err != nil {
-				log.Printf("Invalid base64 in %s for key %s: %v\n", filePath, key, err)
+				log.Printf("Invalid base64 in %s for key %s: %v\n", filePath, keyStr, err)
 				continue
 			}
 
-			store.data.Store(key, valueBytes)
+			keyInt, err := strconv.Atoi(keyStr)
+			if err != nil {
+				log.Printf("Invalid integer key %s in file %s\n", keyStr, filePath)
+				continue
+			}
+
+			if err := store.Set(keyInt, string(valueBytes)); err != nil {
+				log.Printf("Failed to load key %d into store %s: %v\n", keyInt, storeName, err)
+			}
 		}
 	}
 
@@ -81,29 +94,26 @@ func (manager *DataStoreManager) GetStore(name string) (*KeyValueStore, bool) {
 }
 
 func (manager *DataStoreManager) RemoveStore(name string) bool {
-	if _, exists := manager.stores[name]; exists {
-		store, exists := manager.stores[name]
-		if !exists {
-			return false
-		}
-
-		if store.fileStore != nil {
-			if err := store.fileStore.Close(); err != nil {
-				log.Printf("Failed to close FileStore for %s: %v", name, err)
-			}
-		}
-
-		delete(manager.stores, name)
-
-		dbPath := filepath.Join("db", manager.port)
-		fileName := name + ".solstr"
-		fullPath := filepath.Join(dbPath, fileName)
-
-		if err := os.Remove(fullPath); err != nil {
-			log.Printf("Failed to remove file %s: %v", fullPath, err)
-		}
-
-		return true
+	store, exists := manager.stores[name]
+	if !exists {
+		return false
 	}
-	return false
+
+	if store.fileStore != nil {
+		if err := store.fileStore.Close(); err != nil {
+			log.Printf("Failed to close FileStore for %s: %v", name, err)
+		}
+	}
+
+	delete(manager.stores, name)
+
+	dbPath := filepath.Join("db", manager.port)
+	fileName := name + ".solstr"
+	fullPath := filepath.Join(dbPath, fileName)
+
+	if err := os.Remove(fullPath); err != nil {
+		log.Printf("Failed to remove file %s: %v", fullPath, err)
+	}
+
+	return true
 }
