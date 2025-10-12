@@ -91,14 +91,14 @@ Where:
    instruction=set|store=user_data|data={"name": "John Doe", "age": 30}
    ```
 
-- This command stores the data `{"key": "e35ed236-7469-4b35-b8c0-c784c38c2d2b", "name": "John Doe", "age": 30}` in the `user_data` store.
+- This command stores the data `{"key": "1", "name": "John Doe", "age": 30}` in the `user_data` store.
 
 3. **Get Data**
 
    ```bash
-   instruction=get|store=user_data|key=e35ed236-7469-4b35-b8c0-c784c38c2d2b
+   instruction=get|store=user_data|key=1
    ```
-- This command retrieves the data associated with the key `e35ed236-7469-4b35-b8c0-c784c38c2d2b` from the user_data store.
+- This command retrieves the data associated with the key `1` from the user_data store.
 
 4. **Get Data Without Key**
 
