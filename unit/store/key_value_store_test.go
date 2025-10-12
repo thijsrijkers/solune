@@ -1,31 +1,13 @@
 package store_test
 
 import (
-	"reflect"
 	"testing"
+
 	"solune/store"
 	"solune/filestore"
 )
 
-func normalize(m map[string]interface{}) map[string]interface{} {
-	normalized := make(map[string]interface{})
-	for k, v := range m {
-		switch v := v.(type) {
-		case int:
-			normalized[k] = float64(v)
-		case int64:
-			normalized[k] = float64(v)
-		case float32:
-			normalized[k] = float64(v)
-		default:
-			normalized[k] = v
-		}
-	}
-	return normalized
-}
-
 func TestKeyValueStore(t *testing.T) {
-	// Initialize the file store with a test filename
 	fs, err := filestore.New("testKeyValueStore", "9000")
 	if err != nil {
 		t.Fatalf("failed to create file store: %v", err)
@@ -33,8 +15,8 @@ func TestKeyValueStore(t *testing.T) {
 
 	kv := store.NewKeyValueStore(fs)
 
-	key1 := "user1"
-	value1 := map[string]interface{}{"name": "Alice", "age": 30}
+	key1 := 1
+	value1 := `{"name":"Alice","age":30}`
 
 	t.Run("Set and Get", func(t *testing.T) {
 		err := kv.Set(key1, value1)
@@ -47,41 +29,34 @@ func TestKeyValueStore(t *testing.T) {
 			t.Errorf("expected no error, got %v", err)
 		}
 
-		if !reflect.DeepEqual(normalize(got), normalize(value1)) {
+		if got != value1 {
 			t.Errorf("expected value %v, got %v", value1, got)
 		}
 	})
 
 	t.Run("GetAllData", func(t *testing.T) {
-		key2 := "user2"
-		value2 := map[string]interface{}{"name": "Bob", "age": 25}
-		kv.Set(key2, value2)
+		key2 := 2
+		value2 := `{"name":"Bob","age":25}`
 
-		got := kv.GetAllData()
-
-		if len(got) != 2 {
-			t.Errorf("expected 2 records, got %d", len(got))
+		err := kv.Set(key2, value2)
+		if err != nil {
+			t.Errorf("expected no error on Set, got %v", err)
 		}
 
-		expected1 := normalize(map[string]interface{}{"key": key1, "name": "Alice", "age": 30})
-		expected2 := normalize(map[string]interface{}{"key": key2, "name": "Bob", "age": 25})
+		allData := kv.GetAllData()
 
-		found1, found2 := false, false
-		for _, row := range got {
-			if reflect.DeepEqual(normalize(row), expected1) {
-				found1 = true
-			}
-			if reflect.DeepEqual(normalize(row), expected2) {
-				found2 = true
-			}
+		if len(allData) != 2 {
+			t.Errorf("expected 2 records, got %d", len(allData))
 		}
-		if !found1 || !found2 {
-			t.Errorf("expected both values in the result")
+
+		if allData[key1] != value1 || allData[key2] != value2 {
+			t.Errorf("expected stored values to match, got %v", allData)
 		}
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		newValue := map[string]interface{}{"name": "Alice Updated", "age": 31}
+		newValue := `{"name":"Alice Updated","age":31}`
+
 		err := kv.Update(key1, newValue)
 		if err != nil {
 			t.Errorf("expected no error on update, got %v", err)
@@ -92,7 +67,7 @@ func TestKeyValueStore(t *testing.T) {
 			t.Errorf("expected no error on get after update, got %v", err)
 		}
 
-		if !reflect.DeepEqual(normalize(got), normalize(newValue)) {
+		if got != newValue {
 			t.Errorf("expected updated value %v, got %v", newValue, got)
 		}
 	})
