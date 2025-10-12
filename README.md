@@ -112,17 +112,12 @@ Where:
 
 ### 1. TCPRelay Overview
 
-The `TCPRelay` acts as a dispatcher between the client and all database shards. It forwards incoming commands to each shard, waits for their responses, and returns a unified result back to the client.
+`TCPRelay` is a lightweight, low-latency TCP relay that forwards client connections to a designated peer. It supports full-duplex communication, making it suitable for scenarios like database proxying or forwarding TCP traffic between services.
 
 ```bash
-+-----------+    Command    +-------------+    result     +-----------+
-|   Client  | ------------> |  TCPRelay   | ------------> |   Client  |
-+-----------+               +-------------+               +-----------+
-                               |   |   |
-                               v   v   v
-                     +-------+ +-------+ +-------+
-                     | Shard | | Shard | | Shard |
-                     +-------+ +-------+ +-------+
++-----------+    TCP Connection   +-------------+    TCP Connection   +-----------+
+|   Client  | ------------------> |  TCPRelay   | ------------------> |   Peer    |
++-----------+                     +-------------+                     +-----------+
 ```
 
 
