@@ -2,20 +2,15 @@ package workerlogic
 
 import (
 	"log"
-	"solune/sharding"
+	"solune/tcp"
+	"solune/store"
 )
 
 func Run(port string) {
-	shardManager := shard.NewShardManager(port)
+	manager := store.NewDataStoreManager(string(port));
 
-	if shardManager.HasActiveShards() {
-		log.Println("Shards detected. Starting them...")
-		shardManager.StartAll()
-	} else {
-		log.Println("No active shards found, starting a new one....")
-		s := shard.NewShard("9000")
-		go s.Start()
-	}
+	log.Printf("Staring server on port %s\n", port);
+	tcp.StartServer(port, manager);
 
 	select {}
 }
