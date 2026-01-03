@@ -1,7 +1,7 @@
 import socket
 
 server_ip = '127.0.0.1'
-server_port = 8743
+server_port = 9000
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

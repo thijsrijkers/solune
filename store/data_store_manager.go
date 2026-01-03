@@ -21,7 +21,7 @@ func NewDataStoreManager(port string) *DataStoreManager {
 		port:   port,
 	}
 
-	dbPath := filepath.Join("db", port)
+	dbPath := filepath.Join("db")
 	files, err := os.ReadDir(dbPath)
 	if err != nil {
 		return manager
@@ -107,7 +107,7 @@ func (manager *DataStoreManager) RemoveStore(name string) bool {
 
 	delete(manager.stores, name)
 
-	dbPath := filepath.Join("db", manager.port)
+	dbPath := filepath.Join("db")
 	fileName := name + ".solstr"
 	fullPath := filepath.Join(dbPath, fileName)
 

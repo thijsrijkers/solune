@@ -25,7 +25,7 @@ func TestFileStore(t *testing.T) {
 	}
 
 	// Check if the file exists
-	if _, err := os.Stat("db/9000/testfile.solstr"); os.IsNotExist(err) {
+	if _, err := os.Stat("db/testfile.solstr"); os.IsNotExist(err) {
 		t.Fatalf("Expected file to be created, but it doesn't exist")
 	}
 
@@ -38,7 +38,7 @@ func TestFileStore(t *testing.T) {
 	}
 
 	// Open the file and verify if the content is correct
-	file, err := os.Open("db/9000/testfile.solstr")
+	file, err := os.Open("db/testfile.solstr")
 	if err != nil {
 		t.Fatalf("Failed to open file: %v", err)
 	}

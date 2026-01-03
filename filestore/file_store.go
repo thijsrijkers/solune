@@ -21,7 +21,7 @@ func New(filename, port string) (*FileStore, error) {
 		filename += ".solstr"
 	}
 
-	baseDir := "db/" + port
+	baseDir := "db"
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, err
 	}

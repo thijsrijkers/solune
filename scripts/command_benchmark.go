@@ -9,8 +9,8 @@ import (
 
 const (
 	serverIP    = "127.0.0.1"
-	serverPort  = "8743"
-	numRequests = 100
+	serverPort  = "9000"
+	numRequests = 1
 	command     = ""
 )
 
