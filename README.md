@@ -27,8 +27,6 @@ While in-memory storage does have certain trade-offs (e.g., limited by system me
 Solune is actively evolving to enhance performance, precision, and scalability. The current improvements under development include:
 
 - **Store Listing via `get` Instruction:** Extending the `get` instruction to return a list of all available store names when no specific store is provided.
-- **Targeted Shard Writes:** Adjusting the TCPRelay logic so that data creation operations (`set`) target a specific shard, while retrieval, update, and deletion operations continue to be broadcast across all shards.
-- **Shard Rebalancing Logic:** Implementing intelligent rebalancing of data between shards. While the supporting processes are in place, logic for redistribution and load balancing is currently being integrated.
 
 These enhancements aim to optimize resource usage, minimize unnecessary communication overhead, and improve the system's scalability and manageability.
 
@@ -51,7 +49,7 @@ From the project root directory (where `docker-compose.yml` is located), run:
 ```bash
 docker-compose up --build
 ```
-This will build the Docker image and start the Solune server inside a container, exposing it on port 8743. You can now interact with the database through the running container. We created a python script where you can define the command that you want to execute:
+This will build the Docker image and start the Solune server inside a container, exposing it on port 9000. You can now interact with the database through the running container. We created a python script where you can define the command that you want to execute:
 
 ```bash
 python .\communication.py 
@@ -110,18 +108,7 @@ Where:
 
 ## Internal processes:
 
-### 1. TCPRelay Overview
-
-`TCPRelay` is a lightweight, low-latency TCP relay that forwards client connections to a designated peer. It supports full-duplex communication, making it suitable for scenarios like database proxying or forwarding TCP traffic between services.
-
-```bash
-+-----------+    TCP Connection   +-------------+    TCP Connection   +-----------+
-|   Client  | ------------------> |  TCPRelay   | ------------------> |   Peer    |
-+-----------+                     +-------------+                     +-----------+
-```
-
-
-### 2. Supervisor Overview
+### 1. Supervisor Overview
 
 The **Supervisor** in this project is a lightweight monitoring process designed to keep the worker shard processes running reliably on their assigned TCP ports.
 
@@ -148,7 +135,7 @@ flowchart TD
 - Supervisors and workers run as independent OS processes.
 - Supervisors do not block the main program, allowing concurrent management of multiple shards.
 
-### 3. Monitor Overview
+### 2. Monitor Overview
 
 The **Monitor** process runs independently to continuously oversee the resource usage and health of all active worker processes. It periodically scans running workers, checking their CPU and memory consumption against predefined thresholds. If a worker exceeds these limits, the monitor logs warnings to help detect potential performance issues or memory leaks early.
 
