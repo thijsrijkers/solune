@@ -131,9 +131,9 @@ flowchart TD
   D -->|If Worker crashes| A
 ```
 
-- This watch-and-restart loop ensures that each shard remains operational without manual intervention.
+- This watch-and-restart loop ensures that the worker remains operational without manual intervention.
 - Supervisors and workers run as independent OS processes.
-- Supervisors do not block the main program, allowing concurrent management of multiple shards.
+- Supervisors do not block the main program, allowing concurrent management of the worker.
 
 ### 2. Monitor Overview
 
