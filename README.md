@@ -27,6 +27,7 @@ While in-memory storage does have certain trade-offs (e.g., limited by system me
 Solune is actively evolving to enhance performance, precision, and scalability. The current improvements under development include:
 
 - **Store Listing via `get` Instruction:** Extending the `get` instruction to return a list of all available store names when no specific store is provided.
+- Create scheduler for file writing.
 
 These enhancements aim to optimize resource usage, minimize unnecessary communication overhead, and improve the system's scalability and manageability.
 
