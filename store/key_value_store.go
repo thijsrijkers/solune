@@ -3,9 +3,10 @@ package store
 import (
 	"encoding/base64"
 	"fmt"
-	"sync"
-	"github.com/google/btree"
 	"solune/filestore"
+	"sync"
+
+	"github.com/google/btree"
 )
 
 type item struct {
@@ -66,11 +67,7 @@ func (store *KeyValueStore) Update(key int, newValue string) error {
 	return nil
 }
 
-
 func (store *KeyValueStore) Get(key int) (string, error) {
-	store.mu.RLock()
-	defer store.mu.RUnlock()
-
 	it := store.tree.Get(&item{key: key})
 	if it == nil {
 		return "", &KeyNotFoundError{Key: key}
@@ -115,4 +112,3 @@ type KeyNotFoundError struct {
 func (e *KeyNotFoundError) Error() string {
 	return fmt.Sprintf("key %v not found", e.Key)
 }
-
