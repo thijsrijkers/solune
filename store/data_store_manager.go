@@ -5,20 +5,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"solune/filestore"
 	"strconv"
 	"strings"
-	"solune/filestore"
 )
 
 type DataStoreManager struct {
 	stores map[string]*KeyValueStore
-	port   string
 }
 
-func NewDataStoreManager(port string) *DataStoreManager {
+func NewDataStoreManager() *DataStoreManager {
 	manager := &DataStoreManager{
 		stores: make(map[string]*KeyValueStore),
-		port:   port,
 	}
 
 	dbPath := filepath.Join("db")
@@ -80,7 +78,7 @@ func NewDataStoreManager(port string) *DataStoreManager {
 }
 
 func (manager *DataStoreManager) AddStore(name string) {
-	fs, err := filestore.New(name, manager.port)
+	fs, err := filestore.New(name)
 	if err != nil {
 		log.Printf("Failed to create filestore for %s: %v", name, err)
 		return

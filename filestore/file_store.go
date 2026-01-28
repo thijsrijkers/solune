@@ -16,7 +16,7 @@ type FileStore struct {
 	fileLock sync.Mutex
 }
 
-func New(filename, port string) (*FileStore, error) {
+func New(filename string) (*FileStore, error) {
 	if !strings.HasSuffix(filename, ".solstr") {
 		filename += ".solstr"
 	}

@@ -5,18 +5,18 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"time"
-	"solune/processing"
 	"solune/builder"
+	"solune/processing"
+	"time"
 )
 
 func main() {
 	//Step 1: Setup binary, cleanup old monitor process and retrieve argument data
-	builder.BuildBinary();
+	builder.BuildBinary()
 
-	processing.KillMonitorProcesses();
+	processing.KillMonitorProcesses()
 
-	port := "9000";
+	port := "9000"
 
 	processing.KillPort(port)
 	time.Sleep(500 * time.Millisecond)
@@ -29,7 +29,7 @@ func main() {
 	log.Printf("Starting worker for port %s...", port)
 	err := cmd.Start()
 	if err != nil {
-	 	log.Printf("Failed to start worker for port %s: %v", port, err)
+		log.Printf("Failed to start worker for port %s: %v", port, err)
 		return
 	}
 
@@ -67,4 +67,3 @@ func main() {
 	}
 	log.Printf("Started monitor with PID %d", monitorCmd.Process.Pid)
 }
-

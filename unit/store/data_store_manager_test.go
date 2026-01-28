@@ -1,12 +1,12 @@
 package store_test
 
 import (
-	"testing"
 	"solune/store"
+	"testing"
 )
 
 func TestDataStoreManager(t *testing.T) {
-	manager := store.NewDataStoreManager("9000")
+	manager := store.NewDataStoreManager()
 
 	manager.AddStore("users")
 	userStore, exists := manager.GetStore("users")

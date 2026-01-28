@@ -3,9 +3,9 @@ package filestore_test
 import (
 	"bufio"
 	"os"
-	"testing"
 	"solune/filestore"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -19,7 +19,7 @@ func TestFileStore(t *testing.T) {
 	}()
 
 	// Test 1: Create a new FileStore
-	store, err := filestore.New("testfile", "9000")
+	store, err := filestore.New("testfile")
 	if err != nil {
 		t.Fatalf("Failed to create FileStore: %v", err)
 	}

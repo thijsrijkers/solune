@@ -3,12 +3,12 @@ package store_test
 import (
 	"testing"
 
-	"solune/store"
 	"solune/filestore"
+	"solune/store"
 )
 
 func TestKeyValueStore(t *testing.T) {
-	fs, err := filestore.New("testKeyValueStore", "9000")
+	fs, err := filestore.New("testKeyValueStore")
 	if err != nil {
 		t.Fatalf("failed to create file store: %v", err)
 	}
