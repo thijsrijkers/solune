@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"time"
 )
 
-const addr = "localhost:9000"
+const addr = "127.0.0.1:9000"
 
 func send(conn net.Conn, command string) string {
 	fmt.Fprintf(conn, command+"\n")
@@ -20,7 +21,7 @@ func main() {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		fmt.Println("Failed to connect:", err)
-		return
+		os.Exit(1)
 	}
 	defer conn.Close()
 
