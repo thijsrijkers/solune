@@ -5,11 +5,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"solune/processing"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
-	"solune/processing"
 )
 
 func Run(port string, pid string) {
@@ -20,22 +20,22 @@ func Run(port string, pid string) {
 
 	for {
 		if !isProcessRunning(pidInt) {
-			log.Printf("Process %d stopped. Restarting shard on port %s...", pidInt, port)
+			log.Printf("Process %d stopped. Restarting worker on port %s...", pidInt, port)
 
 			err := processing.KillPort(port)
 			if err != nil {
 				log.Printf("Error killing port %s: %v", port, err)
 			}
 
-			proc, err := startShard(port)
+			proc, err := startWorker(port)
 			if err != nil {
-				log.Printf("Failed to start new shard on port %s: %v", port, err)
+				log.Printf("Failed to start new worker on port %s: %v", port, err)
 				time.Sleep(5 * time.Second)
 				continue
 			}
 
 			pidInt = proc.Pid
-			log.Printf("Now supervising new shard with PID %d on port %s", pidInt, port)
+			log.Printf("Now supervising new worker with PID %d on port %s", pidInt, port)
 		}
 
 		time.Sleep(60 * time.Second)
@@ -67,7 +67,7 @@ func killPort(p string) error {
 	return killCmd.Run()
 }
 
-func startShard(port string) (*os.Process, error) {
+func startWorker(port string) (*os.Process, error) {
 	_ = killPort(port)
 	time.Sleep(500 * time.Millisecond)
 

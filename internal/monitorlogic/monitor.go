@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	MaxCPUUsage    = 70.0    // percent
-	MaxMemoryUsage = 2000.0  // megabytes (2 GB)
+	MaxCPUUsage    = 70.0   // percent
+	MaxMemoryUsage = 2000.0 // megabytes (2 GB)
 )
 
 func Run() {
@@ -48,7 +48,7 @@ func checkProcess(p *process.Process) {
 	}
 
 	if !strings.Contains(name, "worker") {
-   		return
+		return
 	}
 
 	pid := p.Pid
@@ -69,4 +69,3 @@ func checkProcess(p *process.Process) {
 		log.Printf("Worker PID %d exceeded limits: CPU %.2f%%, Mem %.2fMB", pid, cpuPercent, memMB)
 	}
 }
-
