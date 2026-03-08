@@ -10,11 +10,13 @@ COPY . .
 
 RUN GOOS=linux GOARCH=amd64 go build -o solune .
 
-FROM alpine:latest  
+FROM golang:1.20-alpine
 
 WORKDIR /root/
 
 COPY --from=builder /database/solune .
+
+COPY . .
 
 EXPOSE 9000
 
