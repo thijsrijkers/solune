@@ -24,3 +24,10 @@ go.work.sum
 
 # env file
 .env
+
+# project generated output
+db/user_data.solstr
+monitor
+supervisor
+test/unit/store/db/
+worker
