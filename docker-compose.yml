@@ -7,5 +7,5 @@ services:
       dockerfile: Dockerfile
     container_name: solune
     ports:
-      - "8743:8743"
+      - "9000:9000"
     restart: unless-stopped

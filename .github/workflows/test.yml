@@ -23,7 +23,32 @@ jobs:
         run: go mod tidy
 
       - name: Run unit tests
-        run: go test ./test/unit...
+        run: go test ./test/unit/...
 
-      - name: Run intergration tests
-        run: go run ./test/intergration/steps.go
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services via Docker Compose
+        run: docker compose up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for solune to be ready..."
+          for i in $(seq 1 15); do
+            if nc -z localhost 9000; then
+              echo "Service is up!"
+              exit 0
+            fi
+            echo "Attempt $i/15 - waiting 2s..."
+            sleep 2
+          done
+          echo "Service failed to start. Logs:"
+          docker compose logs
+          exit 1
+
+      - name: Run integration tests
+        run: go run ./test/integration/steps.go
+
+      - name: Tear down services
+        if: always()
+        run: docker compose down
