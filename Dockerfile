@@ -16,6 +16,6 @@ WORKDIR /root/
 
 COPY --from=builder /database/solune .
 
-EXPOSE 8743
+EXPOSE 9000
 
 CMD ["./solune"]

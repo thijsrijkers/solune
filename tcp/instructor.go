@@ -8,41 +8,69 @@ import (
 type Behavior struct {
 	Instruction string
 	Store       string
-	Key       	string
-	Data 		string
+	Key         string
+	Data        string
 }
 
+var (
+	errInvalidFormat = errors.New("invalid command format")
+	errInvalidPair   = errors.New("invalid key:value pair")
+)
+
 func ParseCommand(command string) (Behavior, error) {
-	parts := strings.Split(command, "|")
-
-	if len(parts) < 2 {
-		return Behavior{}, errors.New("invalid command format")
-	}
-
 	var b Behavior
+	count := 0
 
-	for _, part := range parts {
-		kv := strings.SplitN(part, "=", 2)
-		if len(kv) != 2 {
-			return Behavior{}, errors.New("invalid key:value pair")
+	for len(command) > 0 {
+		// Find next segment
+		seg := command
+		if i := strings.IndexByte(command, '|'); i >= 0 {
+			seg = command[:i]
+			command = command[i+1:]
+		} else {
+			command = ""
 		}
 
-		key := strings.TrimSpace(kv[0])
-		value := strings.TrimSpace(kv[1])
+		// Find '=' in segment
+		eq := strings.IndexByte(seg, '=')
+		if eq < 0 {
+			return Behavior{}, errInvalidPair
+		}
+
+		key := trimSpace(seg[:eq])
+		val := trimSpace(seg[eq+1:])
 
 		switch key {
 		case "instruction":
-			b.Instruction = value
+			b.Instruction = val
 		case "store":
-			b.Store = value
+			b.Store = val
 		case "key":
-			b.Key = value
+			b.Key = val
 		case "data":
-			b.Data = value
+			b.Data = val
 		default:
 			return Behavior{}, errors.New("unknown key: " + key)
 		}
+		count++
+	}
+
+	if count < 2 {
+		return Behavior{}, errInvalidFormat
 	}
 
 	return b, nil
+}
+
+// trimSpace is an inline-friendly replacement for strings.TrimSpace
+// that avoids the unicode overhead — TCP commands are ASCII.
+func trimSpace(s string) string {
+	start, end := 0, len(s)
+	for start < end && s[start] == ' ' {
+		start++
+	}
+	for end > start && s[end-1] == ' ' {
+		end--
+	}
+	return s[start:end]
 }
