@@ -150,11 +150,6 @@ go test ./test/unit/...
 ```
 This will execute the unit tests and display the results in your terminal.
 
-To run with verbose output:
-```bash
-go test -v ./test/unit/...
-```
-
 ### 2. Benchmarking
 To run the benchmark tests:
 ```bash
@@ -173,8 +168,6 @@ BenchmarkGet-11    9668280    123.8 ns/op    24 B/op    1 allocs/op
 | `24 B/op` | Bytes allocated per operation |
 | `1 allocs/op` | Heap allocations per operation |
 
-At 123.8 ns/op this yields roughly **~8 million reads per second**.
-
 ### 3. Integration Testing
 The integration test spins up a real TCP connection to a running Solune server and verifies end-to-end behavior. Before running it, make sure the server is running on `127.0.0.1:9000`.
 
@@ -187,11 +180,6 @@ Then in a separate terminal, run the integration test:
 ```bash
 go run ./test/integration/main.go
 ```
-
-The test walks through three steps:
-1. **Create store** — creates a new `user_data` store
-2. **Set data** — inserts a record into the store
-3. **Get all data** — retrieves all records and prints the response
 
 Example output:
 ```
