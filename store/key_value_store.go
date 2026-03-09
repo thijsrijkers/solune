@@ -9,22 +9,30 @@ import (
 	"sync/atomic"
 )
 
-const shards = 50
-
 type Shard struct {
 	data map[int][]byte
 	mu   sync.RWMutex
 }
 
 type KeyValueStore struct {
-	shards    [shards]Shard
-	fileStore *filestore.FileStore
-	NextKey   atomic.Int64
+	shards     []Shard
+	shardCount int
+	fileStore  *filestore.FileStore
+	NextKey    atomic.Int64
 }
 
-func NewKeyValueStore(fs *filestore.FileStore) *KeyValueStore {
-	store := &KeyValueStore{fileStore: fs}
-	store.NextKey.Store(0)
+func NewKeyValueStore(fs *filestore.FileStore, numberOfShards ...int) *KeyValueStore {
+	shardCount := 50
+	if len(numberOfShards) > 0 && numberOfShards[0] > 0 {
+		shardCount = numberOfShards[0]
+	}
+	store := &KeyValueStore{
+		fileStore:  fs,
+		shards:     make([]Shard, shardCount),
+		shardCount: shardCount,
+	}
+
+	store.NextKey.Store(1)
 
 	for i := range store.shards {
 		store.shards[i].data = make(map[int][]byte)
@@ -34,7 +42,7 @@ func NewKeyValueStore(fs *filestore.FileStore) *KeyValueStore {
 }
 
 func (store *KeyValueStore) getShard(key int) *Shard {
-	return &store.shards[key%shards]
+	return &store.shards[key%store.shardCount]
 }
 
 func (store *KeyValueStore) Set(key int, value string) error {
