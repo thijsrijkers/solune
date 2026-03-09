@@ -82,8 +82,7 @@ func (s *Server) HandleSet(storeName string, key string, data string) ([]map[str
 			return nil, fmt.Errorf("failed to update key %d: %v", keyInt, err)
 		}
 	} else if exists && data != "" {
-		all := store.GetAllData()
-		newKey := len(all) + 1
+		newKey := int(store.NextKey.Load())
 		err := store.Set(newKey, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set data: %v", err)

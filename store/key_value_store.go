@@ -6,6 +6,7 @@ import (
 	"solune/filestore"
 	"sort"
 	"sync"
+	"sync/atomic"
 )
 
 const shards = 50
@@ -18,13 +19,17 @@ type Shard struct {
 type KeyValueStore struct {
 	shards    [shards]Shard
 	fileStore *filestore.FileStore
+	NextKey   atomic.Int64
 }
 
 func NewKeyValueStore(fs *filestore.FileStore) *KeyValueStore {
 	store := &KeyValueStore{fileStore: fs}
+	store.NextKey.Store(0)
+
 	for i := range store.shards {
 		store.shards[i].data = make(map[int][]byte)
 	}
+
 	return store
 }
 
@@ -38,6 +43,22 @@ func (store *KeyValueStore) Set(key int, value string) error {
 	defer shard.mu.Unlock()
 
 	shard.data[key] = []byte(value)
+
+	// NextKey always tracks the highest key seen + 1.
+	// A Compare And Swap (CAS) loop is used instead of a simple Store because multiple goroutines
+	// across different shards can call Set concurrently. If two goroutines both
+	// load the same current value and race to update it, only one CAS wins,
+	// the other retries with the latest value until it either succeeds or finds
+	// that NextKey is already higher than its key.
+	for {
+		current := store.NextKey.Load()
+		if int64(key) < current {
+			break
+		}
+		if store.NextKey.CompareAndSwap(current, int64(key)+1) {
+			break
+		}
+	}
 
 	go func() {
 		encoded := base64.StdEncoding.EncodeToString([]byte(value))
