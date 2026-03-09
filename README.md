@@ -141,14 +141,69 @@ The **Monitor** process runs independently to continuously oversee the resource 
 
 To ensure only one instance of the monitor runs at a time, the main program terminates any existing monitor processes before launching a new one. This avoids duplicate monitoring and conserves system resources. The monitor runs as a separate OS process and can be restarted independently, ensuring continuous and consistent oversight of the worker.
 
-
-## Testing:
+## Testing
 
 ### 1. Unit Testing
 To run the unit tests, navigate to the source folder and run:
-
 ```bash
-go test ./test/unit...
+go test ./test/unit/...
+```
+This will execute the unit tests and display the results in your terminal.
+
+To run with verbose output:
+```bash
+go test -v ./test/unit/...
 ```
 
-This will execute the unit tests and display the results in your terminal.
+### 2. Benchmarking
+To run the benchmark tests:
+```bash
+go test -bench=. -benchmem ./test/unit/store/...
+```
+
+This measures the performance of the store's `Get` operation. Example output:
+```
+BenchmarkGet-11    9668280    123.8 ns/op    24 B/op    1 allocs/op
+```
+
+| Field | Meaning |
+|---|---|
+| `9668280` | Number of iterations run |
+| `123.8 ns/op` | Average time per operation |
+| `24 B/op` | Bytes allocated per operation |
+| `1 allocs/op` | Heap allocations per operation |
+
+At 123.8 ns/op this yields roughly **~8 million reads per second**.
+
+### 3. Integration Testing
+The integration test spins up a real TCP connection to a running Solune server and verifies end-to-end behavior. Before running it, make sure the server is running on `127.0.0.1:9000`.
+
+Start the server:
+```bash
+go run main.go
+```
+
+Then in a separate terminal, run the integration test:
+```bash
+go run ./test/integration/main.go
+```
+
+The test walks through three steps:
+1. **Create store** — creates a new `user_data` store
+2. **Set data** — inserts a record into the store
+3. **Get all data** — retrieves all records and prints the response
+
+Example output:
+```
+[1. Create store]
+> instruction=set|store=user_data
+< {"status":200}
+
+[2. Set data]
+> instruction=set|store=user_data|data={'name': 'John Doe', 'age': 30}
+< {"status":200}
+
+[3. Get all data]
+> instruction=get|store=user_data
+< [{"1":{"name":"John Doe","age":30}}]
+```

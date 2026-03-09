@@ -6,21 +6,16 @@ import (
 )
 
 func (s *Server) HandleGet(storeName, key string) ([]map[string]interface{}, error) {
+	if key == "" {
+		return s.handleGetAll(storeName)
+	}
+	return s.handleGetSingle(storeName, key)
+}
+
+func (s *Server) handleGetSingle(storeName, key string) ([]map[string]interface{}, error) {
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		return nil, fmt.Errorf("store '%s' not found", storeName)
-	}
-
-	if key == "" {
-		allData := store.GetAllData()
-		result := make([]map[string]interface{}, 0, len(allData))
-		for k, v := range allData {
-			result = append(result, map[string]interface{}{
-				"key":   k,
-				"value": v,
-			})
-		}
-		return result, nil
 	}
 
 	keyInt, err := strconv.Atoi(key)
@@ -33,9 +28,24 @@ func (s *Server) HandleGet(storeName, key string) ([]map[string]interface{}, err
 		return nil, err
 	}
 
-	return []map[string]interface{}{
-		{"key": keyInt, "value": value},
-	}, nil
+	return []map[string]interface{}{{"key": keyInt, "value": value}}, nil
+}
+
+func (s *Server) handleGetAll(storeName string) ([]map[string]interface{}, error) {
+	store, exists := s.manager.GetStore(storeName)
+	if !exists {
+		return nil, fmt.Errorf("store '%s' not found", storeName)
+	}
+
+	allData := store.GetAllData()
+	result := make([]map[string]interface{}, 0, len(allData))
+	for k, v := range allData {
+		result = append(result, map[string]interface{}{
+			"key":   k,
+			"value": v,
+		})
+	}
+	return result, nil
 }
 
 func (s *Server) HandleDelete(storeName string, key string) ([]map[string]interface{}, error) {

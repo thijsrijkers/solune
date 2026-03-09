@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -23,20 +22,18 @@ func WriteError(writer *bufio.Writer, err error) {
 
 func WriteResult(writer *bufio.Writer, result []map[string]interface{}) {
 	if len(result) == 0 {
-		writer.WriteString(`{"status":404}` + "\n")
+		writer.WriteString("{\"status\":404}\n")
 		writer.Flush()
 		return
 	}
 
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	for _, item := range result {
-		if err := enc.Encode(item); err != nil {
-			log.Println("Error encoding item:", err)
-			buf.WriteString(`{"error":"failed to serialize"}` + "\n")
-		}
+	if data, ok := result[0]["data"].(string); ok {
+		writer.WriteString(data)
+		writer.WriteByte('\n')
+		writer.Flush()
+		return
 	}
 
-	writer.Write(buf.Bytes())
+	writer.WriteString("{\"status\":200}\n")
 	writer.Flush()
 }
