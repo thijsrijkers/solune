@@ -11,7 +11,7 @@ const (
 	serverIP    = "127.0.0.1"
 	serverPort  = "9000"
 	numRequests = 1
-	command     = ""
+	command     = "instruction=get|store=user_data|key=5"
 )
 
 func main() {

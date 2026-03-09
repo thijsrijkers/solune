@@ -2,10 +2,7 @@ module solune
 
 go 1.20
 
-require (
-	github.com/google/btree v1.1.3
-	github.com/shirou/gopsutil/v3 v3.24.5
-)
+require github.com/shirou/gopsutil/v3 v3.24.5
 
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect

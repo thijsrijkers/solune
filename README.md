@@ -148,7 +148,7 @@ To ensure only one instance of the monitor runs at a time, the main program term
 To run the unit tests, navigate to the source folder and run:
 
 ```bash
-go test ./unit...
+go test ./test/unit...
 ```
 
 This will execute the unit tests and display the results in your terminal.

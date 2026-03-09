@@ -4,105 +4,104 @@ import (
 	"encoding/base64"
 	"fmt"
 	"solune/filestore"
+	"sort"
 	"sync"
-
-	"github.com/google/btree"
 )
 
-type item struct {
-	key   int
-	value []byte
-}
+const shards = 50
 
-func (a item) Less(b btree.Item) bool {
-	return a.key < b.(*item).key
+type Shard struct {
+	data map[int][]byte
+	mu   sync.RWMutex
 }
 
 type KeyValueStore struct {
-	tree      *btree.BTree
+	shards    [shards]Shard
 	fileStore *filestore.FileStore
-	mu        sync.RWMutex
 }
 
 func NewKeyValueStore(fs *filestore.FileStore) *KeyValueStore {
-	return &KeyValueStore{
-		tree:      btree.New(2),
-		fileStore: fs,
+	store := &KeyValueStore{fileStore: fs}
+	for i := range store.shards {
+		store.shards[i].data = make(map[int][]byte)
 	}
+	return store
+}
+
+func (store *KeyValueStore) getShard(key int) *Shard {
+	return &store.shards[key%shards]
 }
 
 func (store *KeyValueStore) Set(key int, value string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	shard := store.getShard(key)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
 
-	binValue := []byte(value)
-	it := &item{key: key, value: binValue}
-	store.tree.ReplaceOrInsert(it)
+	shard.data[key] = []byte(value)
 
-	go func(key int, binValue []byte) {
-		encoded := base64.StdEncoding.EncodeToString(binValue)
+	go func() {
+		encoded := base64.StdEncoding.EncodeToString([]byte(value))
 		if err := store.fileStore.Update(fmt.Sprintf("%d", key), encoded); err != nil {
 			fmt.Printf("[ERROR] Failed to write key %d to filestore: %v\n", key, err)
 		}
-	}(key, binValue)
+	}()
 
 	return nil
 }
 
 func (store *KeyValueStore) Update(key int, newValue string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-
-	binValue := []byte(newValue)
-	it := &item{key: key, value: binValue}
-	store.tree.ReplaceOrInsert(it)
-
-	go func(key int, binValue []byte) {
-		encoded := base64.StdEncoding.EncodeToString(binValue)
-		if err := store.fileStore.Update(fmt.Sprintf("%d", key), encoded); err != nil {
-			fmt.Printf("[ERROR] Failed to update key %d in filestore: %v\n", key, err)
-		}
-	}(key, binValue)
-
-	return nil
+	return store.Set(key, newValue)
 }
 
 func (store *KeyValueStore) Get(key int) (string, error) {
-	it := store.tree.Get(&item{key: key})
-	if it == nil {
+	shard := store.getShard(key)
+	shard.mu.RLock()
+	defer shard.mu.RUnlock()
+
+	val, ok := shard.data[key]
+	if !ok {
 		return "", &KeyNotFoundError{Key: key}
 	}
-
-	return string(it.(*item).value), nil
+	return string(val), nil
 }
 
 func (store *KeyValueStore) Delete(key int) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	shard := store.getShard(key)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
 
-	it := store.tree.Delete(&item{key: key})
-	if it == nil {
+	if _, ok := shard.data[key]; !ok {
 		return &KeyNotFoundError{Key: key}
 	}
+	delete(shard.data, key)
 
 	if err := store.fileStore.Delete(fmt.Sprintf("%d", key)); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func (store *KeyValueStore) GetAllData() map[int]string {
-	store.mu.RLock()
-	defer store.mu.RUnlock()
-
 	result := make(map[int]string)
-	store.tree.Ascend(func(i btree.Item) bool {
-		it := i.(*item)
-		result[it.key] = string(it.value)
-		return true
-	})
-	return result
+
+	keys := make([]int, 0)
+	for i := range store.shards {
+		shard := &store.shards[i]
+		shard.mu.RLock()
+		for k, v := range shard.data {
+			keys = append(keys, k)
+			result[k] = string(v)
+		}
+		shard.mu.RUnlock()
+	}
+
+	sort.Ints(keys)
+
+	sorted := make(map[int]string, len(keys))
+	for _, k := range keys {
+		sorted[k] = result[k]
+	}
+	return sorted
 }
 
 type KeyNotFoundError struct {
