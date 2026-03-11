@@ -6,39 +6,34 @@ import (
 	"os"
 	"os/exec"
 	"solune/processing"
-	"strconv"
-	"strings"
 	"syscall"
+	"strings"
 	"time"
 )
 
-func Run(port string, pid string) {
-	pidInt, err := strconv.Atoi(pid)
+func Run(port string) {
+	log.Printf("Supervisor starting worker on port %s...", port)
+
+	done, err := startWorker(port)
 	if err != nil {
-		log.Fatalf("Invalid PID provided: %v", err)
+		log.Fatalf("Failed to start initial worker on port %s: %v", port, err)
 	}
 
 	for {
-		if !isProcessRunning(pidInt) {
-			log.Printf("Process %d stopped. Restarting worker on port %s...", pidInt, port)
+		exitErr := <-done
+		log.Printf("Worker on port %s stopped: %v. Restarting...", port, exitErr)
 
-			err := processing.KillPort(port)
-			if err != nil {
-				log.Printf("Error killing port %s: %v", port, err)
-			}
-
-			proc, err := startWorker(port)
-			if err != nil {
-				log.Printf("Failed to start new worker on port %s: %v", port, err)
-				time.Sleep(5 * time.Second)
-				continue
-			}
-
-			pidInt = proc.Pid
-			log.Printf("Now supervising new worker with PID %d on port %s", pidInt, port)
+		if err := processing.KillPort(port); err != nil {
+			log.Printf("Error killing port %s: %v", port, err)
 		}
 
-		time.Sleep(60 * time.Second)
+		done, err = startWorker(port)
+		if err != nil {
+			log.Printf("Failed to restart worker on port %s: %v", port, err)
+			time.Sleep(5 * time.Second)
+			done = make(chan error, 1)
+			done <- fmt.Errorf("start failed, retrying")
+		}
 	}
 }
 
@@ -47,8 +42,7 @@ func isProcessRunning(pid int) bool {
 	if err != nil {
 		return false
 	}
-	err = process.Signal(syscall.Signal(0))
-	return err == nil
+	return process.Signal(syscall.Signal(0)) == nil
 }
 
 func killPort(p string) error {
@@ -61,13 +55,14 @@ func killPort(p string) error {
 
 	pid := strings.TrimSpace(string(output))
 	log.Printf("Killing process using TCP port %s (PID: %s)...", p, pid)
+
 	killCmd := exec.Command("kill", "-9", pid)
 	killCmd.Stdout = os.Stdout
 	killCmd.Stderr = os.Stderr
 	return killCmd.Run()
 }
 
-func startWorker(port string) (*os.Process, error) {
+func startWorker(port string) (chan error, error) {
 	_ = killPort(port)
 	time.Sleep(500 * time.Millisecond)
 
@@ -76,22 +71,17 @@ func startWorker(port string) (*os.Process, error) {
 	cmd.Stderr = os.Stderr
 
 	log.Printf("Starting worker for port %s...", port)
-	err := cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		log.Printf("Failed to start worker for port %s: %v", port, err)
 		return nil, err
 	}
 
 	log.Printf("Worker for port %s started with PID %d", port, cmd.Process.Pid)
 
+	done := make(chan error, 1)
 	go func() {
-		err = cmd.Wait()
-		if err != nil {
-			log.Printf("Worker for port %s exited with error: %v", port, err)
-		} else {
-			log.Printf("Worker for port %s exited successfully", port)
-		}
+		done <- cmd.Wait()
 	}()
 
-	return cmd.Process, nil
+	return done, nil
 }

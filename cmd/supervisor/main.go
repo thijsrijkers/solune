@@ -7,13 +7,12 @@ import (
 )
 
 func main() {
-    if len(os.Args) < 3 {
-        fmt.Println("Usage: go run main.go <port> <pid>")
+    if len(os.Args) < 2 {
+        fmt.Println("Usage: go run main.go <port>")
         os.Exit(1)
     }
 
     port := os.Args[1]
-    pid := os.Args[2]
 
-    supervisorlogic.Run(port, pid)
+    supervisorlogic.Run(port)
 }
