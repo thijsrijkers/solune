@@ -61,6 +61,10 @@ func (s *Server) handleGetAll(storeName string) ([]map[string]interface{}, error
 }
 
 func (s *Server) HandleDelete(storeName string, key string) ([]map[string]interface{}, error) {
+	if storeName == "" {
+		return nil, fmt.Errorf("failed to remove store: no store provided")
+	}
+
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		return nil, fmt.Errorf("store '%s' not found", storeName)
@@ -87,10 +91,15 @@ func (s *Server) HandleDelete(storeName string, key string) ([]map[string]interf
 }
 
 func (s *Server) HandleSet(storeName string, key string, data string) ([]map[string]interface{}, error) {
+	if storeName == "" {
+		return nil, fmt.Errorf("failed to set data: no store provided")
+	}
+
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		s.manager.AddStore(storeName)
 		store, _ = s.manager.GetStore(storeName)
+		return []map[string]interface{}{{"status": 200}}, nil
 	}
 
 	if key != "" {
@@ -103,13 +112,15 @@ func (s *Server) HandleSet(storeName string, key string, data string) ([]map[str
 		if err != nil {
 			return nil, fmt.Errorf("failed to update key %d: %v", keyInt, err)
 		}
+		return []map[string]interface{}{{"status": 200}}, nil
 	} else if exists && data != "" {
 		newKey := int(store.NextKey.Load())
 		err := store.Set(newKey, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set data: %v", err)
 		}
+		return []map[string]interface{}{{"status": 200}}, nil
 	}
 
-	return []map[string]interface{}{{"status": 200}}, nil
+	return nil, fmt.Errorf("failed to set data: panic return")
 }
