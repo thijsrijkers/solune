@@ -163,29 +163,26 @@ BenchmarkGet-11    9668280    123.8 ns/op    24 B/op    1 allocs/op
 | `1 allocs/op` | Heap allocations per operation |
 
 ### 3. Integration Testing
-The integration test spins up a real TCP connection to a running Solune server and verifies end-to-end behavior. Before running it, make sure the server is running on `127.0.0.1:9000`.
+Integration tests use a real TCP connection to a running Solune server (`127.0.0.1:9000`) and verify end-to-end behavior.
 
 Start the server:
 ```bash
 go run main.go
 ```
 
-Then in a separate terminal, run the integration test:
+In a separate terminal, run all integration tests:
 ```bash
-go run ./test/integration/main.go
+go test ./test/integration/... -v -count=1
 ```
 
-Example output:
+To run only the unhappy-path integration test:
+```bash
+go test ./test/integration/... -run TestIntegrationUnhappyPaths -v -count=1
 ```
-[1. Create store]
-> instruction=set|store=user_data
-< {"status":200}
 
-[2. Set data]
-> instruction=set|store=user_data|data={'name': 'John Doe', 'age': 30}
-< {"status":200}
+`TestIntegrationUnhappyPaths` validates invalid commands and error handling (invalid pairs, unknown keys, unsupported instructions, missing stores/keys, and invalid key formats). The test creates a unique temporary store and performs cleanup at the end, so it does not require keeping manual fixtures in `db/`.
 
-[3. Get all data]
-> instruction=get|store=user_data
-< [{"1":{"name":"John Doe","age":30}}]
+If you want a manual request/response walkthrough, you can still run:
+```bash
+go run ./test/integration/steps.go
 ```
