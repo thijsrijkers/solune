@@ -6,10 +6,22 @@ import (
 )
 
 func (s *Server) HandleGet(storeName, key string) ([]map[string]interface{}, error) {
+	if storeName == "" {
+		return s.handleGetAllStores()
+	}
 	if key == "" {
 		return s.handleGetAll(storeName)
 	}
 	return s.handleGetSingle(storeName, key)
+}
+
+func (s *Server) handleGetAllStores() ([]map[string]interface{}, error) {
+		stores := s.manager.GetStores()
+		result := make([]map[string]interface{}, 0, len(stores))
+		for _, name := range stores {
+			result = append(result, map[string]interface{}{"store": name})
+		}
+		return result, nil
 }
 
 func (s *Server) handleGetSingle(storeName, key string) ([]map[string]interface{}, error) {

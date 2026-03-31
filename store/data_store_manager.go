@@ -99,6 +99,17 @@ func (manager *DataStoreManager) GetStore(name string) (*KeyValueStore, bool) {
 	return store, exists
 }
 
+func (manager *DataStoreManager) GetStores() []string {
+	manager.mu.RLock()
+	defer manager.mu.RUnlock()
+
+	names := make([]string, 0, len(manager.stores))
+  for name := range manager.stores {
+		names = append(names, name)
+  }
+	return names
+}
+
 func (manager *DataStoreManager) RemoveStore(name string) bool {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
