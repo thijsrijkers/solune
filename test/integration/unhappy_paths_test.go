@@ -4,13 +4,39 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"testing"
 	"time"
 )
 
-func sendCommandResult(conn net.Conn, command string) (map[string]interface{}, error) {
+func sendCommandResult(command string) (map[string]interface{}, error) {
+	var lastErr error
+	for attempt := 1; attempt <= 5; attempt++ {
+		payload, err := sendCommandOnce(command)
+		if err == nil {
+			return payload, nil
+		}
+
+		lastErr = err
+		if !isTransientNetworkErr(err) {
+			break
+		}
+
+		time.Sleep(time.Duration(attempt) * 150 * time.Millisecond)
+	}
+
+	return nil, lastErr
+}
+
+func sendCommandOnce(command string) (map[string]interface{}, error) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %s: %w", addr, err)
+	}
+	defer conn.Close()
+
 	if _, err := fmt.Fprintf(conn, command+"\n"); err != nil {
 		return nil, fmt.Errorf("failed to send command %q: %w", command, err)
 	}
@@ -33,10 +59,22 @@ func sendCommandResult(conn net.Conn, command string) (map[string]interface{}, e
 	return payload, nil
 }
 
-func sendCommand(t *testing.T, conn net.Conn, command string) map[string]interface{} {
+func isTransientNetworkErr(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "connection refused") {
+		return true
+	}
+
+	return err == io.EOF
+}
+
+func sendCommand(t *testing.T, command string) map[string]interface{} {
 	t.Helper()
 
-	payload, err := sendCommandResult(conn, command)
+	payload, err := sendCommandResult(command)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -57,10 +95,10 @@ func expectStatus(t *testing.T, payload map[string]interface{}, expected int) {
 	}
 }
 
-func expectErrorContains(t *testing.T, conn net.Conn, command, expectedFragment string) {
+func expectErrorContains(t *testing.T, command, expectedFragment string) {
 	t.Helper()
 
-	payload := sendCommand(t, conn, command)
+	payload := sendCommand(t, command)
 	errMsg, ok := payload["error"].(string)
 	if !ok {
 		t.Fatalf("expected error response for command %q, got: %#v", command, payload)
@@ -72,31 +110,14 @@ func expectErrorContains(t *testing.T, conn net.Conn, command, expectedFragment 
 }
 
 func TestIntegrationUnhappyPaths(t *testing.T) {
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		t.Fatalf("failed to connect to %s: %v", addr, err)
-	}
-	t.Cleanup(func() {
-		if err := conn.Close(); err != nil {
-			t.Logf("failed to close connection: %v", err)
-		}
-	})
-
 	storeName := fmt.Sprintf("unhappy_paths_%d", time.Now().UnixNano())
 	missingStore := fmt.Sprintf("missing_%d", time.Now().UnixNano())
 
-	setup := sendCommand(t, conn, fmt.Sprintf("instruction=set|store=%s", storeName))
+	setup := sendCommand(t, fmt.Sprintf("instruction=set|store=%s", storeName))
 	expectStatus(t, setup, 200)
 
 	t.Cleanup(func() {
-		cleanupConn, err := net.Dial("tcp", addr)
-		if err != nil {
-			t.Logf("cleanup failed to connect for store %s: %v", storeName, err)
-			return
-		}
-		defer cleanupConn.Close()
-
-		payload, err := sendCommandResult(cleanupConn, fmt.Sprintf("instruction=delete|store=%s", storeName))
+		payload, err := sendCommandResult(fmt.Sprintf("instruction=delete|store=%s", storeName))
 		if err != nil {
 			t.Logf("cleanup failed for store %s: %v", storeName, err)
 			return
@@ -192,7 +213,7 @@ func TestIntegrationUnhappyPaths(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			expectErrorContains(t, conn, tc.command, tc.expectedFragment)
+			expectErrorContains(t, tc.command, tc.expectedFragment)
 		})
 	}
 }
