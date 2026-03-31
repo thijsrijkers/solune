@@ -24,15 +24,15 @@ func KillPort(p string) error {
 	return killCmd.Run()
 }
 
-func KillMonitorProcesses() {
-	out, err := exec.Command("pgrep", "-f", "monitor").Output()
+func KillSupervisorProcesses() {
+	out, err := exec.Command("pgrep", "-x", "supervisor").Output()
 	if err != nil {
 		return
 	}
 
 	pids := strings.Fields(string(out))
 	for _, pid := range pids {
-		log.Printf("Killing existing monitor process with PID %s", pid)
+		log.Printf("Killing existing supervisor process with PID %s", pid)
 		err := exec.Command("kill", "-9", pid).Run()
 		if err != nil {
 			log.Printf("Failed to kill process %s: %v", pid, err)
