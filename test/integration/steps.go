@@ -31,7 +31,8 @@ func main() {
 	}{
 		{"1. Create store", "instruction=set|store=user_data"},
 		{"2. Set data", "instruction=set|store=user_data|data={'name': 'John Doe', 'age': 30}"},
-		{"3. Get all data", "instruction=get|store=user_data"},
+		{"3. Get all stores", "instruction=get"},
+		{"4. Get all data", "instruction=get|store=user_data"},
 	}
 
 	for _, step := range steps {
