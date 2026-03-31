@@ -47,8 +47,11 @@ jobs:
           docker compose logs
           exit 1
 
-      - name: Run integration tests
+      - name: Run integration walkthrough
         run: go run ./test/integration/steps.go
+
+      - name: Run integration tests
+        run: go test ./test/integration/... -v -count=1
 
       - name: Tear down services
         if: always()
