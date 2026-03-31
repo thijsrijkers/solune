@@ -8,10 +8,12 @@ import (
 	"solune/filestore"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type DataStoreManager struct {
 	stores map[string]*KeyValueStore
+	mu sync.RWMutex
 }
 
 func NewDataStoreManager() *DataStoreManager {
@@ -78,6 +80,9 @@ func NewDataStoreManager() *DataStoreManager {
 }
 
 func (manager *DataStoreManager) AddStore(name string) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
 	fs, err := filestore.New(name)
 	if err != nil {
 		log.Printf("Failed to create filestore for %s: %v", name, err)
@@ -87,11 +92,17 @@ func (manager *DataStoreManager) AddStore(name string) {
 }
 
 func (manager *DataStoreManager) GetStore(name string) (*KeyValueStore, bool) {
+	manager.mu.RLock()
+	defer manager.mu.RUnlock()
+
 	store, exists := manager.stores[name]
 	return store, exists
 }
 
 func (manager *DataStoreManager) RemoveStore(name string) bool {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	
 	store, exists := manager.stores[name]
 	if !exists {
 		return false
