@@ -27,13 +27,14 @@ func WriteResult(writer *bufio.Writer, result []map[string]interface{}) {
 		return
 	}
 
-	if data, ok := result[0]["data"].(string); ok {
-		writer.WriteString(data)
-		writer.WriteByte('\n')
-		writer.Flush()
-		return
+	for _, item := range result {
+		jsonData, err := json.Marshal(item)
+		if err != nil {
+			writer.WriteString("{\"error\":\"failed to encode response\"}\n")
+			writer.Flush()
+			return
+		}
+		writer.WriteString(string(jsonData) + "\n")
 	}
-
-	writer.WriteString("{\"status\":200}\n")
 	writer.Flush()
 }
