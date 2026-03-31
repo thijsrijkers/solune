@@ -55,7 +55,7 @@ func ParseCommand(command string) (Behavior, error) {
 		count++
 	}
 
-	if count < 2 {
+	if count < 1 {
 		return Behavior{}, errInvalidFormat
 	}
 
