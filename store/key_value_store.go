@@ -50,6 +50,12 @@ func (store *KeyValueStore) Set(key int, value string) error {
 	shard.mu.Lock()
 	defer shard.mu.Unlock()
 
+	encoded := base64.StdEncoding.EncodeToString([]byte(value))
+	if err := store.fileStore.Update(fmt.Sprintf("%d", key), encoded); err != nil {
+		fmt.Printf("[ERROR] Failed to write key %d to filestore: %v\n", key, err)
+		return nil
+	}
+
 	shard.data[key] = []byte(value)
 
 	// NextKey always tracks the highest key seen + 1.
@@ -67,13 +73,6 @@ func (store *KeyValueStore) Set(key int, value string) error {
 			break
 		}
 	}
-
-	go func() {
-		encoded := base64.StdEncoding.EncodeToString([]byte(value))
-		if err := store.fileStore.Update(fmt.Sprintf("%d", key), encoded); err != nil {
-			fmt.Printf("[ERROR] Failed to write key %d to filestore: %v\n", key, err)
-		}
-	}()
 
 	return nil
 }
