@@ -1,4 +1,4 @@
-# Solune
+# Solune - A NoSQL Database
 
 Solune is a TCP-based key-value database written in Go.
 It supports multiple named stores, JSON line commands (`get`, `set`, `delete`), process supervision, and disk-backed persistence in `db/*.solstr`.
