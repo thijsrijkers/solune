@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"solune/filestore"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 )
@@ -37,6 +38,18 @@ func NewKeyValueStore(fs *filestore.FileStore, numberOfShards ...int) *KeyValueS
 	for i := range store.shards {
 		store.shards[i].data = make(map[int][]byte)
 	}
+
+	// Seed NextKey from the highest key already on disk.
+	maxKey := int64(0)
+	allKeys := fs.Keys() // see below
+	for _, k := range allKeys {
+		if parsed, err := strconv.ParseInt(k, 10, 64); err == nil {
+			if parsed > maxKey {
+				maxKey = parsed
+			}
+		}
+	}
+	store.NextKey.Store(maxKey + 1)
 
 	return store
 }
@@ -87,10 +100,20 @@ func (store *KeyValueStore) Get(key int) (string, error) {
 	defer shard.mu.RUnlock()
 
 	val, ok := shard.data[key]
-	if !ok {
+	if ok {
+		return string(val), nil
+	}
+
+	value, err := store.fileStore.Get(strconv.Itoa(key))
+
+	if err != nil {
 		return "", &KeyNotFoundError{Key: key}
 	}
-	return string(val), nil
+	
+	// When fetching from disk, set to data in shard
+	shard.data[key] = []byte(value)
+
+	return string(value), nil
 }
 
 func (store *KeyValueStore) Delete(key int) error {

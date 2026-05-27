@@ -1,12 +1,10 @@
 package store
 
 import (
-	"encoding/base64"
 	"log"
 	"os"
 	"path/filepath"
 	"solune/filestore"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -34,46 +32,6 @@ func NewDataStoreManager() *DataStoreManager {
 
 		storeName := strings.TrimSuffix(file.Name(), ".solstr")
 		manager.AddStore(storeName)
-		store, exists := manager.stores[storeName]
-		if !exists || store == nil {
-			log.Printf("Failed to initialize store: %s", storeName)
-			continue
-		}
-
-		filePath := filepath.Join(dbPath, file.Name())
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			log.Printf("Failed to read file %s: %v\n", filePath, err)
-			continue
-		}
-
-		lines := strings.Split(string(content), "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line == "" || !strings.Contains(line, ",") {
-				continue
-			}
-
-			parts := strings.SplitN(line, ",", 2)
-			keyStr := strings.TrimSpace(parts[0])
-			encodedValue := strings.TrimSpace(parts[1])
-
-			valueBytes, err := base64.StdEncoding.DecodeString(encodedValue)
-			if err != nil {
-				log.Printf("Invalid base64 in %s for key %s: %v\n", filePath, keyStr, err)
-				continue
-			}
-
-			keyInt, err := strconv.Atoi(keyStr)
-			if err != nil {
-				log.Printf("Invalid integer key %s in file %s\n", keyStr, filePath)
-				continue
-			}
-
-			if err := store.Set(keyInt, string(valueBytes)); err != nil {
-				log.Printf("Failed to load key %d into store %s: %v\n", keyInt, storeName, err)
-			}
-		}
 	}
 
 	return manager
