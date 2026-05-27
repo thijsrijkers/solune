@@ -1,215 +1,202 @@
 # Solune - A NoSQL Database
 
-**Solune** is a high-performance, NoSQL database designed with an emphasis on scalability and flexibility. By focusing on efficient internal data storage and retrieval, Solune aims to provide rapid access to data while scaling seamlessly across a wide range of use cases.
+Solune is a TCP-based key-value database written in Go.
+It supports multiple named stores, JSON line commands (`get`, `set`, `delete`), process supervision, and disk-backed persistence in `db/*.solstr`.
 
-## Why Go?
+Roadmap items are tracked in `doc/README.md`.
 
-Solune is built with the Go programming language for several key reasons:
+## Highlights
 
-- **Concurrency**: Go’s goroutines and channels make it ideal for handling multiple concurrent operations, a critical feature for databases that need to manage large volumes of requests simultaneously.
-- **Performance**: Go is known for its fast execution times, making it a great choice for performance-sensitive applications like databases.
-- **Simplicity and Readability**: Go is a relatively simple language, making it easy to maintain and extend Solune as the project evolves.
-- **Strong Ecosystem**: Go has a rich ecosystem, providing great libraries and tools that help with building robust, high-performance applications.
+- TCP server on port `9000` by default
+- One JSON command per line
+- Multiple named stores
+- Auto-increment key assignment when `set` is called without `key`
+- Supervisor process that restarts worker on crash
+- Disk-backed storage with in-memory shard cache
 
-## In-Memory Data Storage Priority
+## How Solune works
 
-One of the core design decisions behind Solune is the use of **in-memory data storage**. This choice prioritizes speed and efficiency in data retrieval. Here’s why:
+At runtime, Solune starts three layers:
 
-- **Faster Access**: Accessing data in memory is significantly faster than querying disk-based storage, which makes Solune ideal for high-throughput applications where speed is critical.
-- **Reduced Latency**: By storing data in memory, Solune reduces the need for costly disk I/O operations, which translates to lower latency and faster response times.
-- **Scalability**: In-memory databases can scale easily as the entire database is stored in RAM, and systems with larger amounts of memory can handle growing data volumes without the need for complex disk-based scaling solutions.
+1. **Launcher (`main.go`)**
+   - Builds `worker` and `supervisor` binaries.
+   - Cleans up existing supervisor processes and port `9000`.
+   - Starts the supervisor.
 
-While in-memory storage does have certain trade-offs (e.g., limited by system memory), this design choice aligns with Solune focus on speed and flexibility, especially for applications with high performance requirements.
+2. **Supervisor (`cmd/supervisor`)**
+   - Starts the worker on the configured port.
+   - Waits for worker exit and restarts it.
+   - Handles shutdown signals and forwards them to worker.
 
+3. **Worker (`cmd/worker`)**
+   - Loads stores from `db/*.solstr`.
+   - Starts TCP server and handles client commands.
 
-## Current Development Focus
+## Persistence model
 
-### Phase 1 - Storage Contract and Invariants
-- [ ] Define storage guarantees (especially what "success" means for durability).
-- [ ] Formalize record model: key type, value size limits, tombstones, and error semantics.
-- [ ] Document core invariants (monotonic key allocation, single visible value per key, delete visibility rules).
-- [ ] Add a short design note describing expected behavior under concurrency and restart.
+Solune is **disk-backed** (not memory-only).
 
-### Phase 2 - Write-Ahead Log (WAL)
-- [ ] Introduce a WAL file format with length framing and checksums.
-- [ ] Append every mutation (`set`/`delete`) to WAL before acknowledgment.
-- [ ] Add configurable sync policy (e.g., always fsync, interval-based fsync).
-- [ ] Implement WAL replay on startup with safe handling of torn/corrupt tail records.
-- [ ] Add checkpoint trigger mechanism to bound replay time.
+- Each store is persisted in `db/<store>.solstr`.
+- File format is line-based: `key,base64(value)`.
+- On startup, stores are discovered from files in `db/`.
+- `set`/`update` and `delete` currently rewrite store files via temp-file + rename.
+- In-memory shards cache values for fast access during runtime.
 
-### Phase 3 - Replace Full-File Rewrite Path
-- [ ] Remove full-file rewrite per `update`/`delete`.
-- [ ] Move to append-only data segments for mutation persistence.
-- [ ] Maintain an in-memory index mapping key -> latest segment location.
-- [ ] Support tombstones for delete semantics.
-- [ ] Implement compaction to remove stale versions and reclaim disk space.
+## Command protocol
 
-### Phase 4 - Correctness and Recovery Hardening
-- [ ] Add atomic key reservation API (eliminate `NextKey` load-then-set race).
-- [ ] Ensure key seeding on startup derives from authoritative recovered state.
-- [ ] Treat parse/index corruption explicitly (error/recovery mode), avoid silent data loss.
-- [ ] Add startup consistency checks for index/data alignment.
+Send one JSON object per line over TCP.
 
-### Phase 5 - DB-Grade Test Suite
-- [ ] Add crash-recovery tests (kill between write, fsync, and acknowledgment boundaries).
-- [ ] Add WAL robustness tests (truncated record, checksum mismatch, partial write).
-- [ ] Add concurrency tests (parallel writers/readers, duplicate-key prevention).
-- [ ] Add durability-mode test matrix (strict fsync vs buffered modes).
-- [ ] Add long-running stress tests with compaction + restart cycles.
+### Allowed fields
 
+- `instruction` (string, required)
+- `store` (string, optional depending on instruction)
+- `key` (string or number, optional depending on instruction)
+- `data` (string, optional depending on instruction)
 
-## Getting Started
+Unknown fields are rejected.
 
-To run the Solune server locally, follow these steps:
+### Supported instructions
 
-### 1. Clone the repository:
+- `get`
+- `set`
+- `delete`
 
-```bash
-git clone https://github.com/thijsrijkers/solune.git
-cd solune
-```
+Legacy non-JSON command format is rejected.
 
-### 2. Launch the server with Docker:
+## Command behavior
 
-From the project root directory (where `docker-compose.yml` is located), run:
+### `get`
 
-```bash
-docker-compose up --build
-```
-This will build the Docker image and start the Solune server inside a container, exposing it on port 9000. You can now interact with the database through the running container. We created a python script where you can define the command that you want to execute:
+- `{"instruction":"get"}`
+  Lists all stores.
+- `{"instruction":"get","store":"users"}`
+  Returns all records in store.
+- `{"instruction":"get","store":"users","key":1}`
+  Returns one record by key.
 
-```bash
-python .\communication.py 
-```
+### `set`
 
-### 3. Command Format
-Solune accepts one JSON command per line over TCP:
-```json
-{"instruction":"<action>","store":"<store_name>","key":<key>,"data":"<string value>"}
-```
+- `{"instruction":"set","store":"users"}`
+  Creates store if it does not exist; if it already exists, returns error.
+- `{"instruction":"set","store":"users","data":"{\"name\":\"John\"}"}`
+  Auto-assigns next key and stores data.
+- `{"instruction":"set","store":"users","key":1,"data":"{\"name\":\"Jane\"}"}`
+  Upserts key `1` (create or update).
 
-Where:
-- **`instruction`**: Specifies the action to be performed. The possible actions are:
-  - **`get`**: Retrieve the data associated with the given key. Without a key, it will provide all data from given store.
-  - **`set`**: Store the provided data to the given store. If you perform a **`set`** with both **`data`** and **`key`**, it will replace the old value underneath the key with the new value of data.
-  - **`delete`**: If you provide a **`key`** and **`store`**, it will remove the entry in the store. If you do not provide a **`key`**, it will delete the entire store.
+### `delete`
 
-- **`store`** (optional): The name of the store where the data is to be saved or retrieved from. This is required for both **`get`**,  **`set`** and **`delete`** actions.
+- `{"instruction":"delete","store":"users","key":1}`
+  Deletes one key.
+- `{"instruction":"delete","store":"users"}`
+  Deletes whole store and its backing file.
 
-- **`key`** (optional): The unique identifier used to access or save the data within the specified store. If the instruction is **`get`**, the **`key`** is required to specify which entry to retrieve. If the instruction is **`set`**, the **`key`** is required to specify the entry under which the data will be stored. If the instruction is **`delete`**, the **`key`** is required to specify which entry to remove from the store.
+## Response format
 
-- **`data`** (optional): The data to be stored in the store. This must always be a JSON string value. If your payload is an object or array, stringify and escape it first.
+Responses are newline-delimited JSON objects.
 
+- Success write/delete:
+  ```json
+  {"status":200}
+  ```
 
-##### Example Commands:
+- Read single:
+  ```json
+  {"key":1,"value":"{\"name\":\"Jane\"}"}
+  ```
 
-1. **Creating store**
+- Read many:
+  - One JSON object per line.
 
-   ```json
-   {"instruction":"set","store":"user_data"}
-   ```
-- This command will create a store called `user_data`.
+- Error:
+  ```json
+  {"error":"..."}
+  ```
 
-2. **Set Data**
+- Empty result in some read paths can return:
+  ```json
+  {"status":404}
+  ```
 
-   ```json
-   {"instruction":"set","store":"user_data","data":"{\"name\":\"John Doe\",\"age\":30}"}
-   ```
+## Getting started
 
-- This command stores the data `{"key": "1", "name": "John Doe", "age": 30}` in the `user_data` store.
+### Requirements
 
-3. **Get Data**
+- Go 1.20+
+- Docker (optional)
 
-   ```json
-   {"instruction":"get","store":"user_data","key":1}
-   ```
-- This command retrieves the data associated with the key `1` from the user_data store.
+### Run locally (native)
 
-4. **Get Data Without Key**
-
-   ```json
-   {"instruction":"get","store":"user_data"}
-   ```
-- This command retrieves all data from the user_data store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
-
-
-## Internal processes:
-
-### 1. Supervisor Overview
-
-The **Supervisor** in this project is a lightweight monitoring process designed to keep the worker process running reliably on their assigned TCP ports.
-
-##### Implementation Details
-
-When the main program launches a worker process on a specific port, it also spawns a supervisor process, passing two arguments:
-
-  - The worker's TCP port (e.g., `"9000"`)
-  - The worker’s process ID (PID) assigned by the OS.
-
-The supervisor continuously checks if the worker process with the given PID is still alive by sending a harmless signal (`Signal 0`).
-
-If the worker process crashes or is no longer running, the supervisor:
-
-```mermaid
-flowchart TD
-  A[Worker Process crashes or stops] --> B[Kills any process using the TCP port]
-  B --> C[Spawns new Worker on the same port]
-  C --> D[Monitors new Worker]
-  D -->|If Worker crashes| A
-```
-
-- This watch-and-restart loop ensures that the worker remains operational without manual intervention.
-- Supervisors and workers run as independent OS processes.
-- Supervisors do not block the main program, allowing concurrent management of the worker.
-
-## Testing
-
-### 1. Unit Testing
-To run the unit tests, navigate to the source folder and run:
-```bash
-go test ./test/unit/...
-```
-This will execute the unit tests and display the results in your terminal.
-
-### 2. Benchmarking
-To run the benchmark tests:
-```bash
-go test -bench=. -benchmem ./test/unit/store/...
-```
-
-This measures the performance of the store's `Get` operation. Example output:
-```
-BenchmarkGet-11    9668280    123.8 ns/op    24 B/op    1 allocs/op
-```
-
-| Field | Meaning |
-|---|---|
-| `9668280` | Number of iterations run |
-| `123.8 ns/op` | Average time per operation |
-| `24 B/op` | Bytes allocated per operation |
-| `1 allocs/op` | Heap allocations per operation |
-
-### 3. Integration Testing
-Integration tests use a real TCP connection to a running Solune server (`127.0.0.1:9000`) and verify end-to-end behavior.
-
-Start the server:
 ```bash
 go run main.go
 ```
 
-In a separate terminal, run all integration tests:
+This starts Solune on `127.0.0.1:9000`.
+
+### Run with Docker
+
+```bash
+docker compose up --build
+```
+
+## Sending commands
+
+You can use any TCP client (for example `nc`):
+
+```bash
+printf '{"instruction":"set","store":"user_data"}\n' | nc 127.0.0.1 9000
+printf '{"instruction":"set","store":"user_data","data":"{\"name\":\"John Doe\",\"age\":30}"}\n' | nc 127.0.0.1 9000
+printf '{"instruction":"get","store":"user_data"}\n' | nc 127.0.0.1 9000
+```
+
+There is also a helper script at `scripts/communication.py`.
+
+Note: it ships with `command = ''`; set `command` to your JSON command before running.
+
+## Testing
+
+### Unit tests
+
+```bash
+go test ./test/unit/...
+```
+
+### Benchmarks
+
+```bash
+go test -bench=. -benchmem ./test/unit/store/...
+```
+
+### Integration tests
+
+Start server first:
+
+```bash
+go run main.go
+```
+
+Then in another terminal:
+
 ```bash
 go test ./test/integration/... -v -count=1
 ```
 
-To run only the unhappy-path integration test:
+Run only unhappy-path integration tests:
+
 ```bash
 go test ./test/integration/... -run TestIntegrationUnhappyPaths -v -count=1
 ```
 
-`TestIntegrationUnhappyPaths` validates JSON command error handling (legacy-format rejection, unknown keys, unsupported instructions, missing stores/keys, and invalid key formats). The test creates a unique temporary store and performs cleanup at the end, so it does not require keeping manual fixtures in `db/`.
+Manual request walkthrough:
 
-If you want a manual request/response walkthrough, you can still run:
 ```bash
 go run ./test/integration/steps.go
 ```
+
+## Notes and current limitations
+
+- No authentication/authorization.
+- No WAL yet.
+- No replication.
+- Persistence is file-based with rewrite-on-update/delete semantics.
+- API is TCP JSON-line protocol only (no HTTP/gRPC layer).
+

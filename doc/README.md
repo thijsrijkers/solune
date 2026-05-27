@@ -1,45 +1,53 @@
-# 🗺️ Solune Project Roadmap
+# Solune Roadmap
 
-## ✅ Completed Milestones
+This document tracks planned and in-progress work for Solune.
 
-### 1. Core Infrastructure
-- [x] Go-based architecture implemented.
-- [x] Modular design with clear separation (`data`, `store`, `tcp`).
+For setup, protocol, architecture, and usage, see the root `README.md`.
 
-### 2. Networking and Communication
-- [x] Basic TCP networking module created.
-- [x] Communication script (`communication.py`) for interfacing or testing.
+## Current focus
 
-### 3. Deployment and Environment
-- [x] Dockerfile and docker-compose setup for containerized deployment.
+### 1) Storage correctness and guarantees
+- Define storage guarantees and durability expectations.
+- Document key/value constraints and error semantics.
+- Document invariants (key allocation, visibility, delete behavior).
+- Add a short concurrency + restart behavior note.
 
----
+### 2) Durability improvements
+- Introduce WAL format with framing + checksums.
+- Append `set` / `delete` mutations before acknowledgment.
+- Add configurable sync policy.
+- Add WAL replay with corrupt-tail handling.
+- Add checkpointing to bound startup replay time.
 
-## 🚧 Future Developments
+### 3) Persistence engine evolution
+- Replace rewrite-on-update/delete behavior with append-only segments.
+- Maintain in-memory index to latest record location.
+- Add tombstone handling for deletes.
+- Add compaction to reclaim stale data.
 
-### 1. Scalability and Performance
-- [x] Expand sharding module for distributed data storage.
-- [ ] Expand sharding with data processing splitting.
-- [ ] Add replication and fault tolerance features.
+### 4) Recovery hardening
+- Add atomic key reservation API.
+- Seed keys from authoritative recovered state.
+- Detect and surface index/data corruption explicitly.
+- Add startup consistency checks.
 
-### 2. Data Durability
-- [x] Implement persistent storage to allow data recovery after downtime (currently in-memory only).
-- [ ] Explore write-ahead logging or snapshotting mechanisms.
+### 5) Test hardening
+- Add crash-recovery boundary tests.
+- Add WAL corruption/truncation tests.
+- Add concurrency race/duplicate-key tests.
+- Add durability mode test matrix.
+- Add long-running stress + restart + compaction tests.
 
-### 3. Data Import & Export
-- [ ] Add support for exporting data (e.g., to JSON, CSV, or binary formats).
-- [ ] Implement import functionality for bootstrapping or migration.
-- [ ] Support selective export/import (e.g., per key range or shard).
+## Backlog
 
-### 4. Security and Access Control
-- [ ] Implement authentication and authorization.
-- [ ] Add encryption for data at rest and in transit.
+### Scalability
+- Expand sharding strategy and balancing behavior.
+- Explore replication and failover.
 
-### 5. User Interface and Tooling
-- [ ] Create an administrative web dashboard.
-- [ ] Develop CLI tools for interaction and management.
+### Security
+- Add authentication and authorization.
+- Add encryption in transit and at rest.
 
-### 6. Documentation
-- [ ] Expand documentation in the `doc` module.
-
----
+### Tooling
+- Add CLI/admin tooling for easier operations.
+- Improve observability and operator diagnostics.
