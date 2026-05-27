@@ -24,11 +24,38 @@ While in-memory storage does have certain trade-offs (e.g., limited by system me
 
 ## Current Development Focus
 
-Solune is actively evolving to enhance performance, precision, and scalability. The current improvements under development include:
+### Phase 1 - Storage Contract and Invariants
+- [ ] Define storage guarantees (especially what "success" means for durability).
+- [ ] Formalize record model: key type, value size limits, tombstones, and error semantics.
+- [ ] Document core invariants (monotonic key allocation, single visible value per key, delete visibility rules).
+- [ ] Add a short design note describing expected behavior under concurrency and restart.
 
-- **Store Listing via `get` Instruction:** Extending the `get` instruction to return a list of all available store names when no specific store is provided.
+### Phase 2 - Write-Ahead Log (WAL)
+- [ ] Introduce a WAL file format with length framing and checksums.
+- [ ] Append every mutation (`set`/`delete`) to WAL before acknowledgment.
+- [ ] Add configurable sync policy (e.g., always fsync, interval-based fsync).
+- [ ] Implement WAL replay on startup with safe handling of torn/corrupt tail records.
+- [ ] Add checkpoint trigger mechanism to bound replay time.
 
-These enhancements aim to optimize resource usage, minimize unnecessary communication overhead, and improve the system's scalability and manageability.
+### Phase 3 - Replace Full-File Rewrite Path
+- [ ] Remove full-file rewrite per `update`/`delete`.
+- [ ] Move to append-only data segments for mutation persistence.
+- [ ] Maintain an in-memory index mapping key -> latest segment location.
+- [ ] Support tombstones for delete semantics.
+- [ ] Implement compaction to remove stale versions and reclaim disk space.
+
+### Phase 4 - Correctness and Recovery Hardening
+- [ ] Add atomic key reservation API (eliminate `NextKey` load-then-set race).
+- [ ] Ensure key seeding on startup derives from authoritative recovered state.
+- [ ] Treat parse/index corruption explicitly (error/recovery mode), avoid silent data loss.
+- [ ] Add startup consistency checks for index/data alignment.
+
+### Phase 5 - DB-Grade Test Suite
+- [ ] Add crash-recovery tests (kill between write, fsync, and acknowledgment boundaries).
+- [ ] Add WAL robustness tests (truncated record, checksum mismatch, partial write).
+- [ ] Add concurrency tests (parallel writers/readers, duplicate-key prevention).
+- [ ] Add durability-mode test matrix (strict fsync vs buffered modes).
+- [ ] Add long-running stress tests with compaction + restart cycles.
 
 
 ## Getting Started
@@ -56,9 +83,9 @@ python .\communication.py
 ```
 
 ### 3. Command Format
-The command follows this format:
-```bash
- instruction=<action>|store=<store_name>|key=<key>|data=<data>
+Solune accepts one JSON command per line over TCP:
+```json
+{"instruction":"<action>","store":"<store_name>","key":<key>,"data":"<string value>"}
 ```
 
 Where:
@@ -71,37 +98,37 @@ Where:
 
 - **`key`** (optional): The unique identifier used to access or save the data within the specified store. If the instruction is **`get`**, the **`key`** is required to specify which entry to retrieve. If the instruction is **`set`**, the **`key`** is required to specify the entry under which the data will be stored. If the instruction is **`delete`**, the **`key`** is required to specify which entry to remove from the store.
 
-- **`data`** (optional): The data to be stored in the store. This is only required for the **`set`** action to define what data you want to save.
+- **`data`** (optional): The data to be stored in the store. This must always be a JSON string value. If your payload is an object or array, stringify and escape it first.
 
 
 ##### Example Commands:
 
 1. **Creating store**
 
-   ```bash
-   instruction=set|store=user_data
+   ```json
+   {"instruction":"set","store":"user_data"}
    ```
 - This command will create a store called `user_data`.
 
 2. **Set Data**
 
-   ```bash
-   instruction=set|store=user_data|data={'name': 'John Doe', 'age': 30}
+   ```json
+   {"instruction":"set","store":"user_data","data":"{\"name\":\"John Doe\",\"age\":30}"}
    ```
 
 - This command stores the data `{"key": "1", "name": "John Doe", "age": 30}` in the `user_data` store.
 
 3. **Get Data**
 
-   ```bash
-   instruction=get|store=user_data|key=1
+   ```json
+   {"instruction":"get","store":"user_data","key":1}
    ```
 - This command retrieves the data associated with the key `1` from the user_data store.
 
 4. **Get Data Without Key**
 
-   ```bash
-   instruction=get|store=user_data
+   ```json
+   {"instruction":"get","store":"user_data"}
    ```
 - This command retrieves all data from the user_data store without specifying a key. This could be used if the store is designed to return all entries or a default entry.
 
@@ -180,7 +207,7 @@ To run only the unhappy-path integration test:
 go test ./test/integration/... -run TestIntegrationUnhappyPaths -v -count=1
 ```
 
-`TestIntegrationUnhappyPaths` validates invalid commands and error handling (invalid pairs, unknown keys, unsupported instructions, missing stores/keys, and invalid key formats). The test creates a unique temporary store and performs cleanup at the end, so it does not require keeping manual fixtures in `db/`.
+`TestIntegrationUnhappyPaths` validates JSON command error handling (legacy-format rejection, unknown keys, unsupported instructions, missing stores/keys, and invalid key formats). The test creates a unique temporary store and performs cleanup at the end, so it does not require keeping manual fixtures in `db/`.
 
 If you want a manual request/response walkthrough, you can still run:
 ```bash

@@ -113,11 +113,11 @@ func TestIntegrationUnhappyPaths(t *testing.T) {
 	storeName := fmt.Sprintf("unhappy_paths_%d", time.Now().UnixNano())
 	missingStore := fmt.Sprintf("missing_%d", time.Now().UnixNano())
 
-	setup := sendCommand(t, fmt.Sprintf("instruction=set|store=%s", storeName))
+	setup := sendCommand(t, fmt.Sprintf(`{"instruction":"set","store":"%s"}`, storeName))
 	expectStatus(t, setup, 200)
 
 	t.Cleanup(func() {
-		payload, err := sendCommandResult(fmt.Sprintf("instruction=delete|store=%s", storeName))
+		payload, err := sendCommandResult(fmt.Sprintf(`{"instruction":"delete","store":"%s"}`, storeName))
 		if err != nil {
 			t.Logf("cleanup failed for store %s: %v", storeName, err)
 			return
@@ -140,73 +140,73 @@ func TestIntegrationUnhappyPaths(t *testing.T) {
 		expectedFragment string
 	}{
 		{
-			name:             "invalid pair when '=' missing",
+			name:             "non-JSON command rejected",
 			command:          "instruction",
-			expectedFragment: "invalid key:value pair",
-		},
-		{
-			name:             "invalid pair in second segment",
-			command:          "instruction=get|store",
-			expectedFragment: "invalid key:value pair",
+			expectedFragment: "legacy command format removed",
 		},
 		{
 			name:             "unknown key",
-			command:          "unknown=value",
+			command:          `{"instruction":"get","unknown":"value"}`,
 			expectedFragment: "unknown key: unknown",
 		},
 		{
 			name:             "unsupported instruction",
-			command:          "instruction=patch",
+			command:          `{"instruction":"patch"}`,
 			expectedFragment: "unsupported action: patch",
 		},
 		{
 			name:             "set with no store",
-			command:          "instruction=set",
+			command:          `{"instruction":"set"}`,
 			expectedFragment: "failed to set data: no store provided",
 		},
 		{
 			name:             "set with existing store but no key and no data",
-			command:          fmt.Sprintf("instruction=set|store=%s", storeName),
-			expectedFragment: "failed to set data: panic return",
+			command:          fmt.Sprintf(`{"instruction":"set","store":"%s"}`, storeName),
+			expectedFragment: "failed to set data: no key or data provided",
 		},
 		{
 			name:             "set with invalid key",
-			command:          fmt.Sprintf("instruction=set|store=%s|key=abc|data=value", storeName),
+			command:          fmt.Sprintf(`{"instruction":"set","store":"%s","key":"abc","data":"value"}`, storeName),
 			expectedFragment: "invalid integer key 'abc'",
 		},
 		{
+			name:             "set with non-string data",
+			command:          fmt.Sprintf(`{"instruction":"set","store":"%s","data":{"name":"John"}}`, storeName),
+			expectedFragment: "data must be a string",
+		},
+		{
 			name:             "get from missing store",
-			command:          fmt.Sprintf("instruction=get|store=%s", missingStore),
+			command:          fmt.Sprintf(`{"instruction":"get","store":"%s"}`, missingStore),
 			expectedFragment: fmt.Sprintf("store '%s' not found", missingStore),
 		},
 		{
 			name:             "get with invalid key",
-			command:          fmt.Sprintf("instruction=get|store=%s|key=abc", storeName),
+			command:          fmt.Sprintf(`{"instruction":"get","store":"%s","key":"abc"}`, storeName),
 			expectedFragment: "invalid integer key 'abc'",
 		},
 		{
 			name:             "get missing key",
-			command:          fmt.Sprintf("instruction=get|store=%s|key=999", storeName),
+			command:          fmt.Sprintf(`{"instruction":"get","store":"%s","key":999}`, storeName),
 			expectedFragment: "key 999 not found",
 		},
 		{
 			name:             "delete with no store",
-			command:          "instruction=delete",
+			command:          `{"instruction":"delete"}`,
 			expectedFragment: "failed to remove store: no store provided",
 		},
 		{
 			name:             "delete missing store",
-			command:          fmt.Sprintf("instruction=delete|store=%s", missingStore),
+			command:          fmt.Sprintf(`{"instruction":"delete","store":"%s"}`, missingStore),
 			expectedFragment: fmt.Sprintf("store '%s' not found", missingStore),
 		},
 		{
 			name:             "delete with invalid key",
-			command:          fmt.Sprintf("instruction=delete|store=%s|key=abc", storeName),
+			command:          fmt.Sprintf(`{"instruction":"delete","store":"%s","key":"abc"}`, storeName),
 			expectedFragment: "invalid integer key 'abc'",
 		},
 		{
 			name:             "delete missing key",
-			command:          fmt.Sprintf("instruction=delete|store=%s|key=999", storeName),
+			command:          fmt.Sprintf(`{"instruction":"delete","store":"%s","key":999}`, storeName),
 			expectedFragment: "failed to delete key 999: key 999 not found",
 		},
 	}

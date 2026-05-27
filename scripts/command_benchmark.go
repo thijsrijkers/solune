@@ -13,7 +13,7 @@ const (
 	serverPort  = "9000"
 	numRequests = 100000
 	numWorkers  = 100
-	command     = "instruction=get|store=user_data|key=5"
+	command     = `{"instruction":"get","store":"user_data","key":5}`
 )
 
 func main() {

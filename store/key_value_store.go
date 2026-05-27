@@ -55,7 +55,11 @@ func NewKeyValueStore(fs *filestore.FileStore, numberOfShards ...int) *KeyValueS
 }
 
 func (store *KeyValueStore) getShard(key int) *Shard {
-	return &store.shards[key%store.shardCount]
+	idx := key % store.shardCount
+	if idx < 0 {
+		idx += store.shardCount
+	}
+	return &store.shards[idx]
 }
 
 func (store *KeyValueStore) Set(key int, value string) error {
@@ -66,7 +70,7 @@ func (store *KeyValueStore) Set(key int, value string) error {
 	encoded := base64.StdEncoding.EncodeToString([]byte(value))
 	if err := store.fileStore.Update(fmt.Sprintf("%d", key), encoded); err != nil {
 		fmt.Printf("[ERROR] Failed to write key %d to filestore: %v\n", key, err)
-		return nil
+		return err
 	}
 
 	shard.data[key] = []byte(value)
@@ -97,36 +101,43 @@ func (store *KeyValueStore) Update(key int, newValue string) error {
 func (store *KeyValueStore) Get(key int) (string, error) {
 	shard := store.getShard(key)
 	shard.mu.RLock()
-	defer shard.mu.RUnlock()
-
 	val, ok := shard.data[key]
+	shard.mu.RUnlock()
 	if ok {
 		return string(val), nil
 	}
 
-	value, err := store.fileStore.Get(strconv.Itoa(key))
+	encoded, err := store.fileStore.Get(strconv.Itoa(key))
 
 	if err != nil {
 		return "", &KeyNotFoundError{Key: key}
 	}
-	
-	// When fetching from disk, set to data in shard
-	shard.data[key] = []byte(value)
 
-	return string(value), nil
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode value for key %d: %w", key, err)
+	}
+
+	shard.mu.Lock()
+	shard.data[key] = decoded
+	shard.mu.Unlock()
+
+	return string(decoded), nil
 }
 
 func (store *KeyValueStore) Delete(key int) error {
 	shard := store.getShard(key)
 	shard.mu.Lock()
-	defer shard.mu.Unlock()
-
-	if _, ok := shard.data[key]; !ok {
-		return &KeyNotFoundError{Key: key}
+	_, inMemory := shard.data[key]
+	if inMemory {
+		delete(shard.data, key)
 	}
-	delete(shard.data, key)
+	shard.mu.Unlock()
 
 	if err := store.fileStore.Delete(fmt.Sprintf("%d", key)); err != nil {
+		if !inMemory {
+			return &KeyNotFoundError{Key: key}
+		}
 		return err
 	}
 	return nil
@@ -134,13 +145,34 @@ func (store *KeyValueStore) Delete(key int) error {
 
 func (store *KeyValueStore) GetAllData() map[int]string {
 	result := make(map[int]string)
-
 	keys := make([]int, 0)
+	seen := make(map[int]struct{})
+
+	allFromDisk, err := store.fileStore.All()
+	if err == nil {
+		for keyStr, encoded := range allFromDisk {
+			k, parseErr := strconv.Atoi(keyStr)
+			if parseErr != nil {
+				continue
+			}
+			decoded, decodeErr := base64.StdEncoding.DecodeString(encoded)
+			if decodeErr != nil {
+				continue
+			}
+			result[k] = string(decoded)
+			seen[k] = struct{}{}
+			keys = append(keys, k)
+		}
+	}
+
 	for i := range store.shards {
 		shard := &store.shards[i]
 		shard.mu.RLock()
 		for k, v := range shard.data {
-			keys = append(keys, k)
+			if _, exists := seen[k]; !exists {
+				keys = append(keys, k)
+				seen[k] = struct{}{}
+			}
 			result[k] = string(v)
 		}
 		shard.mu.RUnlock()
