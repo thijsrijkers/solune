@@ -71,6 +71,32 @@ func (s *FileStore) Keys() []string {
 	return keys
 }
 
+func (s *FileStore) All() (map[string]string, error) {
+	s.fileLock.RLock()
+	defer s.fileLock.RUnlock()
+
+	f, err := os.Open(s.filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	result := make(map[string]string, len(s.index))
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if comma := strings.IndexByte(line, ','); comma > 0 {
+			result[line[:comma]] = line[comma+1:]
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (s *FileStore) Get(key string) (string, error) {
 	s.fileLock.RLock()
 	offset, ok := s.index[key]
@@ -180,11 +206,13 @@ func (s *FileStore) Delete(key string) error {
 	scanner := bufio.NewScanner(origFile)
 	writer := bufio.NewWriter(tempFile)
 	newIndex := make(map[string]int64, len(s.index))
+	found := false
 	var offset int64
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, key+",") {
+			found = true
 			continue
 		}
 		if comma := strings.IndexByte(line, ','); comma > 0 {
@@ -199,6 +227,12 @@ func (s *FileStore) Delete(key string) error {
 		offset += int64(n)
 	}
 	origFile.Close()
+
+	if !found {
+		tempFile.Close()
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("key %q not found", key)
+	}
 
 	if err := writer.Flush(); err != nil {
 		tempFile.Close()

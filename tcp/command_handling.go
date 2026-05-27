@@ -16,12 +16,12 @@ func (s *Server) HandleGet(storeName, key string) ([]map[string]interface{}, err
 }
 
 func (s *Server) handleGetAllStores() ([]map[string]interface{}, error) {
-		stores := s.manager.GetStores()
-		result := make([]map[string]interface{}, 0, len(stores))
-		for _, name := range stores {
-			result = append(result, map[string]interface{}{"store": name})
-		}
-		return result, nil
+	stores := s.manager.GetStores()
+	result := make([]map[string]interface{}, 0, len(stores))
+	for _, name := range stores {
+		result = append(result, map[string]interface{}{"store": name})
+	}
+	return result, nil
 }
 
 func (s *Server) handleGetSingle(storeName, key string) ([]map[string]interface{}, error) {
@@ -33,6 +33,9 @@ func (s *Server) handleGetSingle(storeName, key string) ([]map[string]interface{
 	keyInt, err := strconv.Atoi(key)
 	if err != nil {
 		return nil, fmt.Errorf("invalid integer key '%s': %v", key, err)
+	}
+	if keyInt < 0 {
+		return nil, fmt.Errorf("invalid integer key '%s': must be >= 0", key)
 	}
 
 	value, err := store.Get(keyInt)
@@ -75,6 +78,9 @@ func (s *Server) HandleDelete(storeName string, key string) ([]map[string]interf
 		if err != nil {
 			return nil, fmt.Errorf("invalid integer key '%s': %v", key, err)
 		}
+		if keyInt < 0 {
+			return nil, fmt.Errorf("invalid integer key '%s': must be >= 0", key)
+		}
 
 		err = store.Delete(keyInt)
 		if err != nil {
@@ -98,8 +104,14 @@ func (s *Server) HandleSet(storeName string, key string, data string) ([]map[str
 	store, exists := s.manager.GetStore(storeName)
 	if !exists {
 		s.manager.AddStore(storeName)
-		store, _ = s.manager.GetStore(storeName)
-		return []map[string]interface{}{{"status": 200}}, nil
+		var ok bool
+		store, ok = s.manager.GetStore(storeName)
+		if !ok {
+			return nil, fmt.Errorf("failed to create store '%s'", storeName)
+		}
+		if key == "" && data == "" {
+			return []map[string]interface{}{{"status": 200}}, nil
+		}
 	}
 
 	if key != "" {
@@ -107,13 +119,19 @@ func (s *Server) HandleSet(storeName string, key string, data string) ([]map[str
 		if err != nil {
 			return nil, fmt.Errorf("invalid integer key '%s': %v", key, err)
 		}
+		if keyInt < 0 {
+			return nil, fmt.Errorf("invalid integer key '%s': must be >= 0", key)
+		}
+		if data == "" {
+			return nil, fmt.Errorf("failed to update key %d: no data provided", keyInt)
+		}
 
 		err = store.Update(keyInt, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update key %d: %v", keyInt, err)
 		}
 		return []map[string]interface{}{{"status": 200}}, nil
-	} else if exists && data != "" {
+	} else if data != "" {
 		newKey := int(store.NextKey.Load())
 		err := store.Set(newKey, data)
 		if err != nil {
@@ -122,5 +140,5 @@ func (s *Server) HandleSet(storeName string, key string, data string) ([]map[str
 		return []map[string]interface{}{{"status": 200}}, nil
 	}
 
-	return nil, fmt.Errorf("failed to set data: panic return")
+	return nil, fmt.Errorf("failed to set data: no key or data provided")
 }
